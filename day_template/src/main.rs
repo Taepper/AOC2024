@@ -15,10 +15,10 @@ fn main() {
         .filter(|(file_content, name)| !file_content.is_empty())
         .for_each(|x| inputs.push(x));
     for (file_contents, test_name) in inputs.iter() {
-        println!("{}: {}", test_name.to_str().unwrap(), do_task(file_contents));
+        println!("{}: {:?}", test_name.to_str().unwrap(), do_task(file_contents));
     }
 }
 
-fn do_task(input: &String) -> String {
-    "42".to_string()
+fn do_task(input: &String) -> (i64, i64) {
+    (42, 84)
 }
