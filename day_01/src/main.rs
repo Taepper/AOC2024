@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use tae_aoclib2025::{solve_all_inputs};
+use tae_aoclib2025::solve_all_inputs;
 
 fn main() {
     solve_all_inputs("day_01", do_task);
