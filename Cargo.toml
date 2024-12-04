@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "tae_aoclib2025",
     "day_01",
     "day_02",
     "day_03",
