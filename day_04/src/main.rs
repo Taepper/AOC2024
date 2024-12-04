@@ -3,8 +3,8 @@ use std::ops::Range;
 use tae_aoclib2025::solve_all_inputs;
 
 fn main() {
-    solve_all_inputs("day_04", do_task);
     // println!("{:?}", do_task(&fs::read_to_string("day_04/input/demo.txt").unwrap()));
+    solve_all_inputs("day_04", do_task);
 }
 
 const SEARCH_WORD: &str = "XMAS";
@@ -22,26 +22,6 @@ fn do_task(input: &String) -> (i64, i64) {
         .into_iter();
     for x in 0..dim - (SEARCH_WORD.len() - 1) {
         for y in 0..dim - (SEARCH_WORD.len() - 1) {
-            if matches_search_word(
-                &lines,
-                horizontal_ranges(x,y,target_len1),
-                targets_iter1.clone(),
-            ) {
-                if debug_print {
-                    println!("Found horizontal at {},{}", x, y);
-                }
-                result1 += 1;
-            }
-            if matches_search_word(
-                &lines,
-                vertical_ranges(x,y, target_len1),
-                targets_iter1.clone(),
-            ) {
-                if debug_print {
-                    println!("Found vertical at {},{}", x, y);
-                }
-                result1 += 1;
-            }
             // Diagonal
             // Direction /
             if matches_search_word(
@@ -67,8 +47,8 @@ fn do_task(input: &String) -> (i64, i64) {
             }
         }
     }
-    // Horizontal follow-up
-    for x in dim - (SEARCH_WORD.len() - 1)..dim {
+    // Horizontal
+    for x in 0..dim {
         for y in 0..dim - (SEARCH_WORD.len() - 1) {
             if matches_search_word(
                 &lines,
@@ -82,9 +62,9 @@ fn do_task(input: &String) -> (i64, i64) {
             }
         }
     }
-    // Vertical follow-up
+    // Vertical
     for x in 0..dim - (SEARCH_WORD.len() - 1) {
-        for y in dim - (SEARCH_WORD.len() - 1)..dim {
+        for y in 0..dim {
             if matches_search_word(
                 &lines,
                 vertical_ranges(x, y, target_len1),
