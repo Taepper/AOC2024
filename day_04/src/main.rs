@@ -26,7 +26,7 @@ fn do_task(input: &String) -> (i64, i64) {
             // Direction /
             if matches_search_word(
                 &lines,
-                diagonal_ranges1(x,y,target_len1),
+                diagonal_ranges1(x, y, target_len1),
                 targets_iter1.clone(),
             ) {
                 if debug_print {
@@ -37,7 +37,7 @@ fn do_task(input: &String) -> (i64, i64) {
             // Direction \
             if matches_search_word(
                 &lines,
-                diagonal_ranges2(x,y,target_len1),
+                diagonal_ranges2(x, y, target_len1),
                 targets_iter1.clone(),
             ) {
                 if debug_print {
@@ -91,13 +91,11 @@ fn do_task(input: &String) -> (i64, i64) {
                 &lines,
                 diagonal_ranges1(x, y, target_len2),
                 targets_iter2.clone(),
-            ) &&
-                matches_search_word(
-                    &lines,
-                    diagonal_ranges2(x,y, target_len2),
-                    targets_iter2.clone(),
-                )
-            {
+            ) && matches_search_word(
+                &lines,
+                diagonal_ranges2(x, y, target_len2),
+                targets_iter2.clone(),
+            ) {
                 if debug_print {
                     println!("Found cross at {},{}", x, y);
                 }
@@ -116,17 +114,14 @@ fn vertical_ranges(x: usize, y: usize, target_len: usize) -> Zip<Range<usize>, R
     (x..(x + target_len)).zip(std::iter::repeat_n(y, target_len))
 }
 
-
 // Direction \
 fn diagonal_ranges1(x: usize, y: usize, target_len: usize) -> Zip<Range<usize>, Range<usize>> {
-        (x..(x + target_len)).zip(
-            y..(y + target_len))
-    }
+    (x..(x + target_len)).zip(y..(y + target_len))
+}
 
 // Direction /
 fn diagonal_ranges2(x: usize, y: usize, target_len: usize) -> Zip<Range<usize>, Rev<Range<usize>>> {
-    (x..(x + target_len)).zip(
-        (y..(y + target_len)).rev())
+    (x..(x + target_len)).zip((y..(y + target_len)).rev())
 }
 
 fn matches_search_word<I, T>(lines: &Vec<&str>, index_ranges: I, targets_iter: T) -> bool
