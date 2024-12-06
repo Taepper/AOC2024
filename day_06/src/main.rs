@@ -11,10 +11,12 @@ fn do_task(input: &String) -> (i64, i64) {
     let mut board = parse_input(input);
     let mut history: HashSet<Position> = HashSet::new();
 
+    let mut all_visited_squares: HashSet<(usize, usize)> = HashSet::new();
+    let mut potential_new_obstacles = HashSet::new();
+
     let mut position = board.start_position;
     history.insert(position);
-
-    let mut potential_new_obstacles = HashSet::new();
+    all_visited_squares.insert((position.x, position.y));
 
     loop {
         if debug_print {
@@ -29,19 +31,15 @@ fn do_task(input: &String) -> (i64, i64) {
             }
         }
         if history.contains(&position) {
-            if debug_print {
-                println!("Loop!");
-            }
-            break;
+            panic!("Found a loop, when we should run off the board.")
         }
         history.insert(position);
+        all_visited_squares.insert((position.x, position.y));
 
         if let Some(potential_obstacle) = get_next_square(&board, &position, debug_print){
             if !board.obstacles.contains(&potential_obstacle)
                 && !potential_new_obstacles.contains(&potential_obstacle)
-                && !(
-                potential_obstacle.0 == board.start_position.x && potential_obstacle.1 == board.start_position.y
-                ){
+                && !all_visited_squares.contains(&potential_obstacle) {
                 board.obstacles.insert(potential_obstacle);
                 if is_looping(&board, position, &history, debug_print) {
                     potential_new_obstacles.insert(potential_obstacle);
@@ -53,12 +51,7 @@ fn do_task(input: &String) -> (i64, i64) {
             }
         }
     }
-
-    let mut unique_squares: HashSet<(usize, usize)> = HashSet::new();
-    for pos in history.iter() {
-        unique_squares.insert((pos.x, pos.y));
-    }
-    let result1 = unique_squares.len();
+    let result1 = all_visited_squares.len();
     let result2 = potential_new_obstacles.len();
 
     (result1 as i64, result2 as i64)
