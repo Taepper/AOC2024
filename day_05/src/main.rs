@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::str::Lines;
 use tae_aoclib2025::solve_all_inputs;
 
@@ -21,8 +21,7 @@ fn do_task(input: &String) -> (i64, i64) {
             .collect::<Vec<(u64, u64)>>();
         if satisfies_rules(&update, &current_rules, debug_print) {
             result1 += update[update.len() / 2];
-        }
-        else {
+        } else {
             let correct_order = order_correctly(update, current_rules, debug_print);
             result2 += correct_order[correct_order.len() / 2];
         }
@@ -66,7 +65,11 @@ fn get_rules_and_updates(lines: Lines) -> (Vec<(u64, u64)>, Vec<Vec<u64>>) {
     (rules, updates)
 }
 
-fn satisfies_rules(number_order: &Vec<u64>, edge_list: &Vec<(u64, u64)>, _debug_print: bool) -> bool {
+fn satisfies_rules(
+    number_order: &Vec<u64>,
+    edge_list: &Vec<(u64, u64)>,
+    _debug_print: bool,
+) -> bool {
     let mut precondition_edges = Vec::new();
     precondition_edges.resize(100, HashSet::new());
     let mut edges = Vec::new();
@@ -109,9 +112,9 @@ fn order_correctly(vertices: Vec<u64>, edge_list: Vec<(u64, u64)>, debug_print: 
     assert_eq!(initially_empty.len(), 1);
     solution.push(**initially_empty.iter().next().unwrap());
 
-    for pos in 0..n-1 {
+    for pos in 0..n - 1 {
         let x = solution[pos];
-        if debug_print{
+        if debug_print {
             println!("solution: {:?}", solution);
         }
 
