@@ -32,27 +32,49 @@ fn do_task(input: &String) -> (i64, i64) {
                 break;
             }
         }
-        let mut seed = 0;
-        while seed < (1 << (2 * n - 1)) {
-            if execute_three(&numbers, seed, goal)
-                || execute_three(&numbers, seed + 1, goal)
-                || execute_three(&numbers, seed + 2, goal)
-            {
-                result2 += goal as u128;
-                break;
-            }
-            seed += 4;
+
+        if any_matches(&numbers, goal, execute_three) != any_matches(&numbers, goal, execute_three_backwards){
+            println!("Mismatch: {:?} : {}", numbers, goal);
+        }
+        if any_matches(&numbers, goal, execute_three_backwards) {
+            result2 += goal as u128;
         }
     }
-    println!("Part 2: {}", result2);
-
     (result1 as i64, result2 as i64)
 }
 
+fn any_matches(numbers: &Vec<(u64, u32)>, goal: u64, f: fn(&Vec<(u64, u32)>, u64, u64) -> bool) -> bool {
+    let n = numbers.len();
+    let mut seed = 0;
+    while seed < (1 << (2 * n - 1)) {
+        if f(&numbers, seed, goal)
+            || f(&numbers, seed + 1, goal)
+            || f(&numbers, seed + 2, goal)
+        {
+            return true;
+        }
+        seed += 4;
+    }
+    false
+}
+
+fn valid_ternary_seed(seed: u64) -> bool {
+    while seed > 0 {
+        if seed & 0b11 == 0b11 {
+            return false;
+        }
+    }
+    true
+}
+
 fn execute_three(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) -> bool {
+    if !valid_ternary_seed(seed) {
+        return false;
+    }
     let mut numbers = numbers.iter();
     let (mut result, _strlen) = *numbers.next().unwrap();
     for (n, strlen) in numbers {
+        assert_ne!(seed & 0b11, 0b11);
         if seed & 0b11 == 0b00 {
             result += *n;
         } else if seed & 0b11 == 0b01 {
@@ -67,6 +89,36 @@ fn execute_three(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) -> bool {
         seed >>= 2;
     }
     result == goal
+}
+
+fn execute_three_backwards(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) -> bool {
+    if !valid_ternary_seed(seed) {
+        return false;
+    }
+    let numbers_iter = numbers.iter().skip(1).rev();
+    let mut result = goal;
+    for (n, strlen) in numbers_iter {
+        assert_ne!(seed & 0b11, 0b11);
+        if seed & 0b11 == 0b00 {
+            if result < *n {
+                return false
+            }
+            result -= *n;
+        } else if seed & 0b11 == 0b01 {
+            if result % n > 0 {
+                return false
+            }
+            result /= *n;
+        } else if seed & 0b11 == 0b10 {
+            let end_digit_exponent =  10_u64.pow(*strlen);
+            if result % end_digit_exponent != *n {
+                return false
+            }
+            result /= end_digit_exponent;
+        }
+        seed >>= 2;
+    }
+    result == numbers.first().unwrap().0
 }
 
 fn execute(numbers: &Vec<(u64, u32)>, mut seed: u64) -> u64 {
