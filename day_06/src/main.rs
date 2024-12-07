@@ -36,10 +36,11 @@ fn do_task(input: &String) -> (i64, i64) {
         history.insert(position);
         all_visited_squares.insert((position.x, position.y));
 
-        if let Some(potential_obstacle) = get_next_square(&board, &position, debug_print){
+        if let Some(potential_obstacle) = get_next_square(&board, &position, debug_print) {
             if !board.obstacles.contains(&potential_obstacle)
                 && !potential_new_obstacles.contains(&potential_obstacle)
-                && !all_visited_squares.contains(&potential_obstacle) {
+                && !all_visited_squares.contains(&potential_obstacle)
+            {
                 board.obstacles.insert(potential_obstacle);
                 if is_looping(&board, position, &history, debug_print) {
                     potential_new_obstacles.insert(potential_obstacle);
@@ -57,9 +58,14 @@ fn do_task(input: &String) -> (i64, i64) {
     (result1 as i64, result2 as i64)
 }
 
-fn is_looping(board: &Board, mut position: Position, original_history: &HashSet<Position>, debug_print: bool) -> bool {
+fn is_looping(
+    board: &Board,
+    mut position: Position,
+    original_history: &HashSet<Position>,
+    debug_print: bool,
+) -> bool {
     let mut local_history: HashSet<Position> = HashSet::new();
-    loop{
+    loop {
         match step(board, &position, debug_print) {
             None => {
                 return false;
