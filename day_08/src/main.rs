@@ -5,9 +5,6 @@ fn main() {
     solve_all_inputs("day_08", do_task)
 }
 
-static ALPHABET: &str = "abcdefghijklmnopqrstuvwxyz";
-static ALPHABET_UPPER_CASE: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 fn do_task(input: &String) -> (i64, i64) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
 
@@ -38,8 +35,9 @@ fn do_task(input: &String) -> (i64, i64) {
                 let mut first: bool = true;
                 let mut antinode_row = antenna1.0;
                 let mut antinode_col = antenna1.1;
+                antinodes.insert((antinode_row, antinode_col));
                 loop {
-                    // Calculate antenna1 + (antenna1 - antenna2)
+                    // Calculate antinode + (antenna1 - antenna2)
                     if antenna2.0 > antinode_row + antenna1.0 {
                         // Out-of-bounds up
                         break;
@@ -48,8 +46,9 @@ fn do_task(input: &String) -> (i64, i64) {
                         // Out-of-bounds left
                         break;
                     }
-                    antinode_row += antenna1.0 - antenna2.0;
-                    antinode_col += antenna1.1 - antenna2.1;
+                    // println!("{} {} {}", antinode_row, antenna1.0, antenna2.0);
+                    antinode_row = antinode_row + antenna1.0 - antenna2.0;
+                    antinode_col = antinode_col + antenna1.1 - antenna2.1;
                     if antinode_row >= rows {
                         // Out-of-bounds down
                         break;
