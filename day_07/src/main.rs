@@ -39,14 +39,15 @@ fn do_task(input: &String) -> (i64, i64) {
     (result1 as i64, result2 as i64)
 }
 
-fn any_matches(numbers: &Vec<(u64, u32)>, goal: u64, f: fn(&Vec<(u64, u32)>, u64, u64) -> bool) -> bool {
+fn any_matches(
+    numbers: &Vec<(u64, u32)>,
+    goal: u64,
+    f: fn(&Vec<(u64, u32)>, u64, u64) -> bool,
+) -> bool {
     let n = numbers.len();
     let mut seed = 0;
     while seed < (1 << (2 * n - 1)) {
-        if f(&numbers, seed, goal)
-            || f(&numbers, seed + 1, goal)
-            || f(&numbers, seed + 2, goal)
-        {
+        if f(&numbers, seed, goal) || f(&numbers, seed + 1, goal) || f(&numbers, seed + 2, goal) {
             return true;
         }
         seed += 4;
@@ -98,18 +99,18 @@ fn execute_three_backwards(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) 
         assert_ne!(seed & 0b11, 0b11);
         if seed & 0b11 == 0b00 {
             if result < *n {
-                return false
+                return false;
             }
             result -= *n;
         } else if seed & 0b11 == 0b01 {
             if result % n > 0 {
-                return false
+                return false;
             }
             result /= *n;
         } else if seed & 0b11 == 0b10 {
-            let end_digit_exponent =  10_u64.pow(*strlen);
+            let end_digit_exponent = 10_u64.pow(*strlen);
             if result % end_digit_exponent != *n {
-                return false
+                return false;
             }
             result /= end_digit_exponent;
         }
