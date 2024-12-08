@@ -32,10 +32,6 @@ fn do_task(input: &String) -> (i64, i64) {
                 break;
             }
         }
-
-        if any_matches(&numbers, goal, execute_three) != any_matches(&numbers, goal, execute_three_backwards){
-            println!("Mismatch: {:?} : {}", numbers, goal);
-        }
         if any_matches(&numbers, goal, execute_three_backwards) {
             result2 += goal as u128;
         }
@@ -58,11 +54,12 @@ fn any_matches(numbers: &Vec<(u64, u32)>, goal: u64, f: fn(&Vec<(u64, u32)>, u64
     false
 }
 
-fn valid_ternary_seed(seed: u64) -> bool {
+fn valid_ternary_seed(mut seed: u64) -> bool {
     while seed > 0 {
         if seed & 0b11 == 0b11 {
             return false;
         }
+        seed >>= 2;
     }
     true
 }
