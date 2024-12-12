@@ -80,5 +80,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "day_12"
+version = "0.1.0"
+dependencies = [
+ "tae_aoclib2025",
+]
+
+[[package]]
 name = "tae_aoclib2025"
 version = "0.1.0"
