@@ -11,6 +11,7 @@ struct Region {
     area: usize,
     perimeter: usize,
     inside_corners: usize,
+    number_of_inner_islands: usize,
 }
 
 fn find(
@@ -69,29 +70,42 @@ fn do_task(input: &String) -> (i64, i64) {
         for col in 0..cols {
             let character = board[row][col];
             let mut perimeter = 0;
-            // Up
-            if row == 0 || board[row - 1][col] != character {
+            let top_occupied = row > 0 && board[row - 1][col] == character;
+            if !top_occupied {
                 perimeter += 1;
             }
-            // Left
-            if col == 0 || board[row][col - 1] != character {
+            let left_occupied = col > 0 && board[row][col - 1] == character;
+            if !left_occupied {
                 perimeter += 1;
             }
-            // Down
-            if row + 1 == rows || board[row + 1][col] != character {
+            let bot_occupied = row + 1 < rows && board[row + 1][col] == character;
+            if !bot_occupied {
                 perimeter += 1;
             }
-            // Right
-            if col + 1 == cols || board[row][col + 1] != character {
+            let right_occupied = col + 1 < cols && board[row][col + 1] == character;
+            if !right_occupied {
                 perimeter += 1;
             }
-            ;
+
+            let mut inside_corners = 0;
+            if top_occupied && left_occupied && board[row - 1][col - 1] != character {
+                inside_corners += 1;
+            }
+            if top_occupied && right_occupied && board[row - 1][col + 1] != character {
+                inside_corners += 1;
+            }
+            if bot_occupied && left_occupied && board[row + 1][col - 1] != character {
+                inside_corners += 1;
+            }
+            if bot_occupied && right_occupied && board[row + 1][col + 1] != character {
+                inside_corners += 1;
+            }
 
             let region_key = find((row, col), &mut parents);
             if let Some(region) = regions.get_mut(&region_key) {
                 region.perimeter += perimeter;
                 region.area += 1;
-
+                region.inside_corners += inside_corners;
             } else {
                 regions.insert(
                     region_key,
@@ -99,7 +113,7 @@ fn do_task(input: &String) -> (i64, i64) {
                         character,
                         area: 1,
                         perimeter,
-                        inside_corners: 0,
+                        inside_corners,
                     },
                 );
             }
@@ -107,15 +121,16 @@ fn do_task(input: &String) -> (i64, i64) {
     }
 
     let mut result1 = 0;
+    let mut result2 = 0;
 
     for region in regions.values() {
         if debug_print {
             println!("{:?}", region);
         }
         result1 += region.area * region.perimeter;
+        result2 += region.area * ((region.inside_corners * 2) + 4);
     }
 
-    let mut result2 = 0;
     (result1 as i64, result2 as i64)
 }
 
