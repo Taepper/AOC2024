@@ -9,7 +9,10 @@ fn do_task(input: &String) -> (i64, i64) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 10000;
 
-    let mut stones = input.split_whitespace().map(|x| (x.parse::<usize>().unwrap(), 1)).collect::<HashMap<usize, usize>>();
+    let mut stones = input
+        .split_whitespace()
+        .map(|x| (x.parse::<usize>().unwrap(), 1))
+        .collect::<HashMap<usize, usize>>();
 
     // let mut dp_table: HashMap<usize, Vec<usize>> = HashMap::new();
     for _ in 0..75 {
@@ -30,8 +33,7 @@ fn step(stones: HashMap<usize, usize>) -> HashMap<usize, usize> {
         for new_stone in transform(*stone) {
             if let Some(current) = new_stones.get_mut(&new_stone) {
                 *current += *count;
-            }
-            else {
+            } else {
                 new_stones.insert(new_stone, *count);
             }
         }
@@ -54,7 +56,6 @@ fn split_even(number: usize) -> Option<(usize, usize)> {
     // let mut lower = 10;
     // let mut upper = 100; always lower * 10
     // let mut half = 10;
-
 
     // let mut num_digits = 4;
     // let mut lower = 1000; -> lower *= 100
