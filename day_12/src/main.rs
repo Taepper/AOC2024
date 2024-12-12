@@ -11,7 +11,7 @@ struct Region {
     area: usize,
     perimeter: usize,
     inside_corners: usize,
-    number_of_inner_islands: usize,
+    outside_corners: usize,
 }
 
 fn find(
@@ -101,11 +101,25 @@ fn do_task(input: &String) -> (i64, i64) {
                 inside_corners += 1;
             }
 
+            let mut outside_corners = 0;
+            if perimeter == 4 {
+                outside_corners = 4;
+            } else if perimeter == 3 {
+                outside_corners = 2;
+            } else if perimeter == 2 {
+                if (top_occupied && bot_occupied) || (left_occupied && right_occupied) {
+                    // Nothing
+                } else {
+                    outside_corners = 1;
+                }
+            }
+
             let region_key = find((row, col), &mut parents);
             if let Some(region) = regions.get_mut(&region_key) {
                 region.perimeter += perimeter;
                 region.area += 1;
                 region.inside_corners += inside_corners;
+                region.outside_corners += outside_corners;
             } else {
                 regions.insert(
                     region_key,
@@ -114,6 +128,7 @@ fn do_task(input: &String) -> (i64, i64) {
                         area: 1,
                         perimeter,
                         inside_corners,
+                        outside_corners,
                     },
                 );
             }
@@ -124,11 +139,14 @@ fn do_task(input: &String) -> (i64, i64) {
     let mut result2 = 0;
 
     for region in regions.values() {
+        let price_1 = region.area * region.perimeter;
+        let sides = (region.inside_corners * 2) + region.outside_corners - region.inside_corners;
+        let price_2 = region.area * sides;
         if debug_print {
-            println!("{:?}", region);
+            println!("{region:?} (Sides: {sides}, Price: {price_1}, Price2: {price_2})");
         }
-        result1 += region.area * region.perimeter;
-        result2 += region.area * ((region.inside_corners * 2) + 4);
+        result1 += price_1;
+        result2 += price_2;
     }
 
     (result1 as i64, result2 as i64)
