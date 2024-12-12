@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use tae_aoclib2025::solve_all_inputs;
 
 fn main() {
@@ -8,25 +9,32 @@ fn do_task(input: &String) -> (i64, i64) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 10000;
 
-    let mut stones = input.split_whitespace().map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
+    let mut stones = input.split_whitespace().map(|x| (x.parse::<usize>().unwrap(), 1)).collect::<HashMap<usize, usize>>();
 
-    for i in 0..25 {
-        if debug_print {
-            println!("{i}: {stones:?}");
-        }
-        stones = blink(stones);
+    // let mut dp_table: HashMap<usize, Vec<usize>> = HashMap::new();
+    for _ in 0..75 {
+        stones = step(stones)
     }
 
-    let mut result1 = stones.len();
+    let mut result1 = 0;
     let mut result2 = 0;
-    (result1 as i64, result2)
+    for (_stone, count) in &stones {
+        result2 += *count;
+    }
+    (result1 as i64, result2 as i64)
 }
 
-fn blink(stones: Vec<usize>) -> Vec<usize> {
-    let mut new_stones = Vec::new();
-    for stone in stones {
-        let tmp: Vec<usize> = transform(stone);
-        new_stones.extend(tmp);
+fn step(stones: HashMap<usize, usize>) -> HashMap<usize, usize> {
+    let mut new_stones = HashMap::new();
+    for (stone, count) in &stones {
+        for new_stone in transform(*stone) {
+            if let Some(current) = new_stones.get_mut(&new_stone) {
+                *current += *count;
+            }
+            else {
+                new_stones.insert(new_stone, *count);
+            }
+        }
     }
     new_stones
 }
