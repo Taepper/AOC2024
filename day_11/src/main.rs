@@ -13,17 +13,28 @@ fn do_task(input: &String) -> (i64, i64) {
         .split_whitespace()
         .map(|x| (x.parse::<usize>().unwrap(), 1))
         .collect::<HashMap<usize, usize>>();
+    if debug_print {
+        print!("Start stones {:?}", stones);
+    }
 
     // let mut dp_table: HashMap<usize, Vec<usize>> = HashMap::new();
-    for _ in 0..75 {
-        stones = step(stones)
+    for i in 0..25 {
+        stones = step(stones);
+        if debug_print {
+            print!("Step {i}: {stones:?}");
+        }
     }
 
-    let mut result1 = 0;
-    let mut result2 = 0;
-    for (_stone, count) in &stones {
-        result2 += *count;
+    let result1 = stones.iter().map(|(_, count)| count).sum::<usize>();
+
+    for i in 25..75 {
+        stones = step(stones);
+        if debug_print {
+            print!("Step {i}: {stones:?}");
+        }
     }
+
+    let result2 = stones.iter().map(|(_, count)| count).sum::<usize>();
     (result1 as i64, result2 as i64)
 }
 
