@@ -40,7 +40,9 @@ fn do_task(input: &String) -> (i64, i64) {
             assert_eq!(a_presses * game.a.1 + b_presses * game.b.1, game.prize.1);
             result2 += cost;
         } else {
-            println!("Unsolvable {game:?}. For reasons, see above.");
+            if debug_print {
+                println!("Unsolvable {game:?}. For reasons, see above.");
+            }
         }
     }
 
@@ -54,13 +56,17 @@ fn solve_large(game: &Game, debug_print: bool) -> Option<(usize, usize)> {
 
     // Unsolvable, one of the prize coordinates would inevitably grow way beyond the other
     if game.a.0 < game.a.1 && game.b.0 < game.b.1 {
-        println!("Unsolvable, because both buttons move in the same relative direction (x-axis). We totally lose balance!");
+        if debug_print {
+            println!("Unsolvable, because both buttons move in the same relative direction (x-axis). We totally lose balance!");
+        }
         return None;
     }
 
     // Unsolvable, one of the prize coordinates would inevitably grow way beyond the other
     if game.a.0 > game.a.1 && game.b.0 > game.b.1 {
-        println!("Unsolvable, because both buttons move in the same relative direction (y-axis). We totally lose balance!");
+        if debug_print {
+            println!("Unsolvable, because both buttons move in the same relative direction (y-axis). We totally lose balance!");
+        }
         return None;
     }
 
@@ -84,7 +90,9 @@ fn solve_large(game: &Game, debug_print: bool) -> Option<(usize, usize)> {
         let y_distance_covered_per_cycle = a_presses_cycle * game.a.1 + b_presses_cycle * game.b.1;
 
         if x_distance_left % x_distance_covered_per_cycle != 0 {
-            println!("Unsolvable, the remaining distance ({x_distance_left}, {y_distance_left}) after pressing a {a_presses} times and b {b_presses} times cannot be covered by cycling our neutral distance ({x_distance_covered_per_cycle}, {y_distance_covered_per_cycle}), which requires {a_presses_cycle} presses of button a and {b_presses_cycle} presses of button b.");
+            if debug_print {
+                println!("Unsolvable, the remaining distance ({x_distance_left}, {y_distance_left}) after pressing a {a_presses} times and b {b_presses} times cannot be covered by cycling our neutral distance ({x_distance_covered_per_cycle}, {y_distance_covered_per_cycle}), which requires {a_presses_cycle} presses of button a and {b_presses_cycle} presses of button b.");
+            }
             return None;
         }
 
@@ -99,7 +107,9 @@ fn solve_large(game: &Game, debug_print: bool) -> Option<(usize, usize)> {
 
         return Some((total_a_presses, total_b_presses));
     }
-    println!("Did not converge to target diff ({prize_diff}) in time! It should (!!) be impossible with the numbers {a_diff} and {b_diff}.");
+    if debug_print {
+        println!("Did not converge to target diff ({prize_diff}) in time! It should (!!) be impossible with the numbers {a_diff} and {b_diff}.");
+    }
     None
 }
 
@@ -111,7 +121,7 @@ fn reach_diff(a_diff: i64, b_diff: i64, prize_diff: i64) -> Option<(usize, usize
     let mut negative_presses = 0;
 
     let mut cur = 0;
-    for _ in 0..(prize_diff.abs() * 2 + 1)*1000 {
+    for _ in 0..(prize_diff.abs() * 2 + 1) * 1000 {
         if cur == prize_diff {
             return if a_diff < 0 {
                 Some((negative_presses, positive_presses))
@@ -143,7 +153,7 @@ fn lcm(a: u64, b: u64) -> u64 {
     (a * b) / gcd(a, b)
 }
 
-fn get_neutral_presses(mut a_diff_abs: u64, mut b_diff_abs: u64) -> (usize, usize) {
+fn get_neutral_presses(a_diff_abs: u64, b_diff_abs: u64) -> (usize, usize) {
     let lcm = lcm(a_diff_abs, b_diff_abs);
     ((lcm / a_diff_abs) as usize, (lcm / b_diff_abs) as usize)
 }
