@@ -36,47 +36,46 @@ fn do_task(input: &String) -> (i64, i64) {
         pos.x %= width;
         pos.y %= height;
         if debug_print {
-        println!("Robot {robot:?} will be at position {pos:?} after 100 steps");
+            println!("Robot {robot:?} will be at position {pos:?} after 100 steps");
         }
         if pos.x < width / 2 && pos.y < height / 2 {
             if debug_print {
-            println!("This is in quadrant top_left");
+                println!("This is in quadrant top_left");
             }
             top_left.push(pos);
         } else if pos.x > width / 2 && pos.y < height / 2 {
             if debug_print {
-            println!("This is in quadrant top_right");
+                println!("This is in quadrant top_right");
             }
             top_right.push(pos);
         } else if pos.x < width / 2 && pos.y > height / 2 {
             if debug_print {
-            println!("This is in quadrant bot_left");
+                println!("This is in quadrant bot_left");
             }
             bot_left.push(pos);
         } else if pos.x > width / 2 && pos.y > height / 2 {
             if debug_print {
-            println!("This is in quadrant bot_right");
+                println!("This is in quadrant bot_right");
             }
             bot_right.push(pos);
-        }
-        else {
+        } else {
             if debug_print {
-            println!("This is in no quadrant");
+                println!("This is in no quadrant");
             }
         }
     }
 
     if debug_print {
-    println!("Total in top_left: {}", top_left.len());
+        println!("Total in top_left: {}", top_left.len());
     }
     if debug_print {
-    println!("Total in top_right: {}", top_right.len());
+        println!("Total in top_right: {}", top_right.len());
     }
     if debug_print {
-    println!("Total in bot_left: {}", bot_left.len());
+        println!("Total in bot_left: {}", bot_left.len());
     }
     if debug_print {
-    println!("Total in bot_right: {}", bot_right.len());
+        println!("Total in bot_right: {}", bot_right.len());
     }
 
     let result1 = top_left.len() * top_right.len() * bot_left.len() * bot_right.len();
