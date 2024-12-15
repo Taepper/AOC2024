@@ -32,8 +32,12 @@ fn next(map: Vec<Vec<Object>>, direction: Direction) -> Vec<Vec<Object>> {
 fn print_map(map: &Vec<Vec<Object>>) {
     let string = map
         .iter()
-        .map(|row| row.iter().map(|o| format!("{o}"))
-            .collect::<Vec<String>>().join(""))
+        .map(|row| {
+            row.iter()
+                .map(|o| format!("{o}"))
+                .collect::<Vec<String>>()
+                .join("")
+        })
         .collect::<Vec<String>>()
         .join("\n");
     println!("{}", string);
@@ -48,7 +52,9 @@ enum Direction {
 
 impl Display for Direction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}",
+        write!(
+            f,
+            "{}",
             match self {
                 Direction::UP => '^',
                 Direction::DOWN => 'v',
@@ -69,7 +75,9 @@ enum Object {
 
 impl Display for Object {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}",
+        write!(
+            f,
+            "{}",
             match self {
                 Object::ROBOT => '@',
                 Object::BOX => 'O',
