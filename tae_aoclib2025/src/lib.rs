@@ -51,7 +51,7 @@ pub fn format_duration(duration: Duration) -> String {
     format!("{}.{:0>3} micros", duration_micros, duration_nanos)
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct Coordinate {
     pub col: usize,
     pub row: usize,

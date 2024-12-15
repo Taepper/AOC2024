@@ -66,10 +66,11 @@ fn next_wide(state: WideMapState, direction: &Direction) -> WideMapState {
     }
 }
 
-fn next_wide_up_down(state: WideMapState, direction: &Direction) -> WideMapState {
-    let row = state.robot_position.row;
-    let col = state.robot_position.col;
-    assert_eq!(state.map[row][col], WideObject::Robot);
+fn next_wide_up_down(mut state: WideMapState, direction: &Direction) -> WideMapState {
+    assert_eq!(
+        state.map[state.robot_position.row][state.robot_position.col],
+        WideObject::Robot
+    );
 
     let new_robot_pos = step(state.robot_position, direction, 1);
 
@@ -86,18 +87,63 @@ fn next_wide_up_down(state: WideMapState, direction: &Direction) -> WideMapState
             }
         }
     }
-    let mut new_state = state.clone();
+    let mut pushes_by_cols = vec![Vec::new(); state.map[0].len()];
     for (push_start, push_length) in all_pushes {
-        for i in (0..push_length).rev() {
-            let copy_from = step(push_start, direction, i);
-            let copy_to = step(push_start, direction, i + 1);
-            new_state.map[copy_to.row][copy_to.col] =
-                state.map[copy_from.row][copy_from.col].clone();
-        }
-        new_state.map[push_start.row][push_start.col] = WideObject::Empty;
+        pushes_by_cols[push_start.col].push((push_start, push_length));
     }
-    new_state.robot_position = new_robot_pos;
+    for pushes in pushes_by_cols {
+        for (push_start, push_length) in deduplicate(pushes, direction) {
+            for i in (0..push_length).rev() {
+                let copy_from = step(push_start, direction, i);
+                let copy_to = step(push_start, direction, i + 1);
+                state.map[copy_to.row][copy_to.col] =
+                    state.map[copy_from.row][copy_from.col].clone();
+            }
+            state.map[push_start.row][push_start.col] = WideObject::Empty;
+        }
+    }
+    state.robot_position = new_robot_pos;
     state
+}
+
+fn deduplicate(
+    mut pushes: Vec<(Coordinate, usize)>,
+    direction: &Direction,
+) -> Vec<(Coordinate, usize)> {
+    if *direction == Direction::Up {
+        pushes.sort_by_key(|a| a.0.row);
+        pushes.reverse();
+        // println!("pushes: {:?}", pushes);
+        for (push1, (push_2_index, push_2)) in pushes.iter().zip(pushes.iter().enumerate().skip(1))
+        {
+            if push1.0.row == push_2.0.row {
+                pushes.remove(push_2_index);
+                return deduplicate(pushes, direction);
+            }
+            if push1.0.row - push1.1 <= push_2.0.row {
+                pushes.remove(push_2_index);
+                return deduplicate(pushes, direction);
+            }
+        }
+        pushes.reverse();
+        pushes
+    } else {
+        // Down
+        pushes.sort_by_key(|a| a.0.row);
+        for (push1, (push_2_index, push_2)) in pushes.iter().zip(pushes.iter().enumerate().skip(1))
+        {
+            if push1.0.row == push_2.0.row {
+                pushes.remove(push_2_index);
+                return deduplicate(pushes, direction);
+            }
+            if push1.0.row + push1.1 >= push_2.0.row {
+                pushes.remove(push_2_index);
+                return deduplicate(pushes, direction);
+            }
+        }
+        pushes.reverse();
+        pushes
+    }
 }
 
 fn next_wide_simple(mut state: WideMapState, direction: &Direction) -> WideMapState {
