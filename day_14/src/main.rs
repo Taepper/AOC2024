@@ -1,6 +1,4 @@
-use std::fmt::Display;
-use std::ops::{Add, AddAssign, Rem, RemAssign};
-use tae_aoclib2025::solve_all_inputs;
+use tae_aoclib2025::{solve_all_inputs, Coordinate};
 
 fn main() {
     solve_all_inputs("day_14", do_task)
@@ -131,52 +129,6 @@ fn calculate_safety_number(
         }
     }
     top_left * top_right * bot_left * bot_right
-}
-
-#[derive(Debug, Clone, Copy)]
-struct Coordinate {
-    col: usize,
-    row: usize,
-}
-
-impl Display for Coordinate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{},{}]", self.col, self.row)
-    }
-}
-
-impl Add for Coordinate {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self {
-            col: self.col + other.col,
-            row: self.row + other.row,
-        }
-    }
-}
-
-impl AddAssign for Coordinate {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs
-    }
-}
-
-impl RemAssign for Coordinate {
-    fn rem_assign(&mut self, rhs: Self) {
-        *self = *self % rhs
-    }
-}
-
-impl Rem<Coordinate> for Coordinate {
-    type Output = Coordinate;
-
-    fn rem(self, rhs: Coordinate) -> Self::Output {
-        Coordinate {
-            col: self.col % rhs.col,
-            row: self.row % rhs.row,
-        }
-    }
 }
 
 #[derive(Debug)]

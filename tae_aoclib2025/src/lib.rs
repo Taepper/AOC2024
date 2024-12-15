@@ -1,4 +1,6 @@
+use std::fmt::Display;
 use std::fs;
+use std::ops::{Add, AddAssign, Rem, RemAssign};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -47,4 +49,50 @@ pub fn format_duration(duration: Duration) -> String {
     }
     let duration_nanos = duration.as_nanos() % 1000;
     format!("{}.{:0>3} micros", duration_micros, duration_nanos)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Coordinate {
+    pub col: usize,
+    pub row: usize,
+}
+
+impl Display for Coordinate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{},{}]", self.col, self.row)
+    }
+}
+
+impl Add for Coordinate {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            col: self.col + other.col,
+            row: self.row + other.row,
+        }
+    }
+}
+
+impl AddAssign for Coordinate {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs
+    }
+}
+
+impl RemAssign for Coordinate {
+    fn rem_assign(&mut self, rhs: Self) {
+        *self = *self % rhs
+    }
+}
+
+impl Rem<Coordinate> for Coordinate {
+    type Output = Coordinate;
+
+    fn rem(self, rhs: Coordinate) -> Self::Output {
+        Coordinate {
+            col: self.col % rhs.col,
+            row: self.row % rhs.row,
+        }
+    }
 }
