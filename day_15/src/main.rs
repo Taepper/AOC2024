@@ -8,7 +8,6 @@ fn main() {
 fn do_task(input: &String) -> (i64, i64) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 10000;
-    let mut result2 = 0;
 
     let (start_map, movements) = parse_input(input);
     if debug_print {
@@ -17,7 +16,7 @@ fn do_task(input: &String) -> (i64, i64) {
     }
 
     let mut map = start_map.clone();
-    for movement in movements {
+    for movement in &movements {
         map = next(map, movement);
         if debug_print {
             println!("Move {movement}:");
@@ -25,11 +24,33 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
+    let mut wide_map = start_map.widen();
+    if debug_print {
+        println!("W Initial state:");
+        print_wide_map(&wide_map.map);
+    }
+    for movement in &movements {
+        wide_map = next_wide(wide_map, movement);
+        if debug_print {
+            println!("W Move {movement}:");
+            print_wide_map(&wide_map.map);
+        }
+    }
+
     let mut result1 = 0;
     for (row, line) in map.map.iter().enumerate() {
         for (col, object) in line.iter().enumerate() {
-            if *object == Object::BOX {
+            if *object == Object::Box {
                 result1 += row * 100 + col;
+            }
+        }
+    }
+
+    let mut result2 = 0;
+    for (row, line) in wide_map.map.iter().enumerate() {
+        for (col, object) in line.iter().enumerate() {
+            if *object == WideObject::BoxLeft {
+                result2 += row * 100 + col;
             }
         }
     }
@@ -37,10 +58,109 @@ fn do_task(input: &String) -> (i64, i64) {
     (result1 as i64, result2 as i64)
 }
 
-fn next(mut state: MapState, direction: Direction) -> MapState {
+fn next_wide(state: WideMapState, direction: &Direction) -> WideMapState {
+    if *direction == Direction::Left || *direction == Direction::Right {
+        next_wide_simple(state, direction)
+    } else {
+        next_wide_up_down(state, direction)
+    }
+}
+
+fn next_wide_up_down(state: WideMapState, direction: &Direction) -> WideMapState {
     let row = state.robot_position.row;
     let col = state.robot_position.col;
-    assert_eq!(state.map[row][col], Object::ROBOT);
+    assert_eq!(state.map[row][col], WideObject::Robot);
+
+    let new_robot_pos = step(state.robot_position, direction, 1);
+
+    let mut push_starts = vec![state.robot_position];
+    let mut all_pushes = Vec::new();
+    while let Some(push_start) = push_starts.pop() {
+        match get_push_target(&push_start, direction, &state.map) {
+            None => {
+                return state;
+            }
+            Some((push_length, new_push_starts)) => {
+                all_pushes.push((push_start, push_length));
+                push_starts.extend(new_push_starts);
+            }
+        }
+    }
+    let mut new_state = state.clone();
+    for (push_start, push_length) in all_pushes {
+        for i in (0..push_length).rev() {
+            let copy_from = step(push_start, direction, i);
+            let copy_to = step(push_start, direction, i + 1);
+            new_state.map[copy_to.row][copy_to.col] =
+                state.map[copy_from.row][copy_from.col].clone();
+        }
+        new_state.map[push_start.row][push_start.col] = WideObject::Empty;
+    }
+    new_state.robot_position = new_robot_pos;
+    state
+}
+
+fn next_wide_simple(mut state: WideMapState, direction: &Direction) -> WideMapState {
+    let row = state.robot_position.row;
+    let col = state.robot_position.col;
+    assert_eq!(state.map[row][col], WideObject::Robot);
+
+    let new_robot_pos = step(state.robot_position, direction, 1);
+
+    if let Some((push_length, _)) = get_push_target(&state.robot_position, direction, &state.map) {
+        for i in (0..push_length).rev() {
+            let copy_from = step(state.robot_position, direction, i);
+            let copy_to = step(state.robot_position, direction, i + 1);
+            state.map[copy_to.row][copy_to.col] = state.map[copy_from.row][copy_from.col].clone();
+        }
+        state.map[row][col] = WideObject::Empty;
+        state.robot_position = new_robot_pos;
+        state
+    } else {
+        state
+    }
+}
+
+fn get_push_target(
+    push_start: &Coordinate,
+    direction: &Direction,
+    map: &Vec<Vec<WideObject>>,
+) -> Option<(usize, Vec<Coordinate>)> {
+    let mut push_length = 1;
+    let mut new_push_starts = Vec::new();
+    loop {
+        let push_pos = step(*push_start, direction, push_length);
+        match map[push_pos.row][push_pos.col] {
+            WideObject::Robot => {
+                panic!("This should not happen? Multiple robots on map?2")
+            }
+            WideObject::BoxLeft => {
+                new_push_starts.push(Coordinate {
+                    col: push_pos.col + 1,
+                    row: push_pos.row,
+                });
+            }
+            WideObject::BoxRight => {
+                new_push_starts.push(Coordinate {
+                    col: push_pos.col - 1,
+                    row: push_pos.row,
+                });
+            }
+            WideObject::Wall => {
+                return None;
+            }
+            WideObject::Empty => {
+                return Some((push_length, new_push_starts));
+            }
+        }
+        push_length += 1;
+    }
+}
+
+fn next(mut state: MapState, direction: &Direction) -> MapState {
+    let row = state.robot_position.row;
+    let col = state.robot_position.col;
+    assert_eq!(state.map[row][col], Object::Robot);
 
     let new_robot_pos = step(state.robot_position, direction, 1);
 
@@ -48,18 +168,18 @@ fn next(mut state: MapState, direction: Direction) -> MapState {
     loop {
         let push_pos = step(state.robot_position, direction, push_length);
         match state.map[push_pos.row][push_pos.col] {
-            Object::ROBOT => {
+            Object::Robot => {
                 panic!("This should not happen? Multiple robots on map?2")
             }
-            Object::BOX => { // Nothing..
+            Object::Box => { // Nothing..
             }
-            Object::WALL => return state,
-            Object::EMPTY => {
+            Object::Wall => return state,
+            Object::Empty => {
                 state.robot_position = new_robot_pos;
-                state.map[row][col] = Object::EMPTY;
-                state.map[new_robot_pos.row][new_robot_pos.col] = Object::ROBOT;
+                state.map[row][col] = Object::Empty;
+                state.map[new_robot_pos.row][new_robot_pos.col] = Object::Robot;
                 if push_length > 1 {
-                    state.map[push_pos.row][push_pos.col] = Object::BOX;
+                    state.map[push_pos.row][push_pos.col] = Object::Box;
                 }
                 return state;
             }
@@ -68,23 +188,23 @@ fn next(mut state: MapState, direction: Direction) -> MapState {
     }
 }
 
-fn step(coord: Coordinate, direction: Direction, steps: usize) -> Coordinate {
+fn step(coord: Coordinate, direction: &Direction, steps: usize) -> Coordinate {
     let col = coord.col;
     let row = coord.row;
     match direction {
-        Direction::UP => Coordinate {
+        Direction::Up => Coordinate {
             col,
             row: row - steps,
         },
-        Direction::DOWN => Coordinate {
+        Direction::Down => Coordinate {
             col,
             row: row + steps,
         },
-        Direction::LEFT => Coordinate {
+        Direction::Left => Coordinate {
             col: col - steps,
             row,
         },
-        Direction::RIGHT => Coordinate {
+        Direction::Right => Coordinate {
             col: col + steps,
             row,
         },
@@ -105,12 +225,26 @@ fn print_map(map: &Vec<Vec<Object>>) {
     println!("{}", string);
 }
 
+fn print_wide_map(map: &Vec<Vec<WideObject>>) {
+    let string = map
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|o| format!("{o}"))
+                .collect::<Vec<String>>()
+                .join("")
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
+    println!("{}", string);
+}
+
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 enum Direction {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 impl Display for Direction {
@@ -119,10 +253,10 @@ impl Display for Direction {
             f,
             "{}",
             match self {
-                Direction::UP => '^',
-                Direction::DOWN => 'v',
-                Direction::LEFT => '<',
-                Direction::RIGHT => '>',
+                Direction::Up => '^',
+                Direction::Down => 'v',
+                Direction::Left => '<',
+                Direction::Right => '>',
             },
         )
     }
@@ -134,12 +268,63 @@ struct MapState {
     robot_position: Coordinate,
 }
 
+impl MapState {
+    pub(crate) fn widen(&self) -> WideMapState {
+        let mut wide_map = vec![Vec::new(); self.map.len()];
+        for (row, line) in self.map.iter().enumerate() {
+            for o in line {
+                match o {
+                    Object::Robot => {
+                        wide_map[row].push(WideObject::Robot);
+                        wide_map[row].push(WideObject::Empty);
+                    }
+                    Object::Box => {
+                        wide_map[row].push(WideObject::BoxLeft);
+                        wide_map[row].push(WideObject::BoxRight);
+                    }
+                    Object::Wall => {
+                        wide_map[row].push(WideObject::Wall);
+                        wide_map[row].push(WideObject::Wall);
+                    }
+                    Object::Empty => {
+                        wide_map[row].push(WideObject::Empty);
+                        wide_map[row].push(WideObject::Empty);
+                    }
+                }
+            }
+        }
+        let new_start = Coordinate {
+            row: self.robot_position.row,
+            col: self.robot_position.col * 2,
+        };
+        WideMapState {
+            map: wide_map,
+            robot_position: new_start,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct WideMapState {
+    map: Vec<Vec<WideObject>>,
+    robot_position: Coordinate,
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Object {
-    ROBOT,
-    BOX,
-    WALL,
-    EMPTY,
+    Robot,
+    Box,
+    Wall,
+    Empty,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum WideObject {
+    Robot,
+    BoxLeft,
+    BoxRight,
+    Wall,
+    Empty,
 }
 
 impl Display for Object {
@@ -148,10 +333,26 @@ impl Display for Object {
             f,
             "{}",
             match self {
-                Object::ROBOT => '@',
-                Object::BOX => 'O',
-                Object::WALL => '#',
-                Object::EMPTY => '.',
+                Object::Robot => '@',
+                Object::Box => 'O',
+                Object::Wall => '#',
+                Object::Empty => '.',
+            },
+        )
+    }
+}
+
+impl Display for WideObject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                WideObject::Robot => '@',
+                WideObject::BoxLeft => '[',
+                WideObject::BoxRight => ']',
+                WideObject::Wall => '#',
+                WideObject::Empty => '.',
             },
         )
     }
@@ -176,17 +377,17 @@ fn parse_input(input: &String) -> (MapState, Vec<Direction>) {
 fn parse_map(lines: Vec<&str>) -> MapState {
     let rows = lines.len();
     let cols = lines.iter().next().unwrap().len();
-    let mut map = vec![vec![Object::EMPTY; cols]; rows];
+    let mut map = vec![vec![Object::Empty; cols]; rows];
     let mut robot_position = Coordinate { col: 0, row: 0 };
     for (row, line) in lines.iter().enumerate() {
         for (col, char) in line.chars().enumerate() {
             if char == '#' {
-                map[row][col] = Object::WALL;
+                map[row][col] = Object::Wall;
             } else if char == '@' {
-                map[row][col] = Object::ROBOT;
+                map[row][col] = Object::Robot;
                 robot_position = Coordinate { col, row };
             } else if char == 'O' {
-                map[row][col] = Object::BOX;
+                map[row][col] = Object::Box;
             }
         }
     }
@@ -201,13 +402,13 @@ fn parse_movements(lines: Vec<&str>) -> Vec<Direction> {
     for line in lines {
         for char in line.chars() {
             let direction = if char == '^' {
-                Direction::UP
+                Direction::Up
             } else if char == '>' {
-                Direction::RIGHT
+                Direction::Right
             } else if char == '<' {
-                Direction::LEFT
+                Direction::Left
             } else if char == 'v' {
-                Direction::DOWN
+                Direction::Down
             } else {
                 unreachable!()
             };
