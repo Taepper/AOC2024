@@ -25,7 +25,6 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
-
     let mut result1 = 0;
     for (row, line) in map.map.iter().enumerate() {
         for (col, object) in line.iter().enumerate() {
@@ -49,12 +48,12 @@ fn next(mut state: MapState, direction: Direction) -> MapState {
     loop {
         let push_pos = step(state.robot_position, direction, push_length);
         match state.map[push_pos.row][push_pos.col] {
-            Object::ROBOT => {panic!("This should not happen? Multiple robots on map?2")}
-            Object::BOX => {// Nothing..
+            Object::ROBOT => {
+                panic!("This should not happen? Multiple robots on map?2")
             }
-            Object::WALL => {
-                return state
+            Object::BOX => { // Nothing..
             }
+            Object::WALL => return state,
             Object::EMPTY => {
                 state.robot_position = new_robot_pos;
                 state.map[row][col] = Object::EMPTY;
@@ -62,7 +61,7 @@ fn next(mut state: MapState, direction: Direction) -> MapState {
                 if push_length > 1 {
                     state.map[push_pos.row][push_pos.col] = Object::BOX;
                 }
-                return state
+                return state;
             }
         }
         push_length += 1;
@@ -73,10 +72,22 @@ fn step(coord: Coordinate, direction: Direction, steps: usize) -> Coordinate {
     let col = coord.col;
     let row = coord.row;
     match direction {
-        Direction::UP => {Coordinate{col, row: row - steps}}
-        Direction::DOWN => {Coordinate{col, row: row + steps}}
-        Direction::LEFT => {Coordinate{col: col - steps, row}}
-        Direction::RIGHT => {Coordinate{col: col + steps, row}}
+        Direction::UP => Coordinate {
+            col,
+            row: row - steps,
+        },
+        Direction::DOWN => Coordinate {
+            col,
+            row: row + steps,
+        },
+        Direction::LEFT => Coordinate {
+            col: col - steps,
+            row,
+        },
+        Direction::RIGHT => Coordinate {
+            col: col + steps,
+            row,
+        },
     }
 }
 
@@ -123,7 +134,6 @@ struct MapState {
     robot_position: Coordinate,
 }
 
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Object {
     ROBOT,
@@ -167,21 +177,23 @@ fn parse_map(lines: Vec<&str>) -> MapState {
     let rows = lines.len();
     let cols = lines.iter().next().unwrap().len();
     let mut map = vec![vec![Object::EMPTY; cols]; rows];
-    let mut robot_position = Coordinate{col: 0, row: 0};
+    let mut robot_position = Coordinate { col: 0, row: 0 };
     for (row, line) in lines.iter().enumerate() {
         for (col, char) in line.chars().enumerate() {
             if char == '#' {
                 map[row][col] = Object::WALL;
             } else if char == '@' {
                 map[row][col] = Object::ROBOT;
-                robot_position = Coordinate{col, row};
+                robot_position = Coordinate { col, row };
             } else if char == 'O' {
                 map[row][col] = Object::BOX;
             }
         }
     }
-    MapState{map, robot_position}
-
+    MapState {
+        map,
+        robot_position,
+    }
 }
 
 fn parse_movements(lines: Vec<&str>) -> Vec<Direction> {
