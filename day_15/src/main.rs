@@ -20,6 +20,7 @@ fn do_task(input: &String) -> (i64, i64) {
     for movement in movements {
         map = next(map, movement);
         if debug_print {
+            println!("Move {movement}:");
             print_map(&map.map);
         }
     }
@@ -38,8 +39,6 @@ fn do_task(input: &String) -> (i64, i64) {
 }
 
 fn next(mut state: MapState, direction: Direction) -> MapState {
-    println!("Move {direction}:");
-
     let row = state.robot_position.row;
     let col = state.robot_position.col;
     assert_eq!(state.map[row][col], Object::ROBOT);
