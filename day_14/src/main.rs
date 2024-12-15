@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use std::fmt::Display;
-use std::ops::Add;
+use std::ops::{Add, AddAssign, Rem, RemAssign};
 use tae_aoclib2025::solve_all_inputs;
 
 fn main() {
@@ -13,97 +12,94 @@ fn do_task(input: &String) -> (i64, i64) {
 
     let (cols, rows, robots) = parse_input(input);
 
-    let mut top_left = Vec::new();
-    let mut top_right = Vec::new();
-    let mut bot_left = Vec::new();
-    let mut bot_right = Vec::new();
+    let steps = 3000000;
+    let mut result1 = 0;
+    let mut result2 = 0;
 
-    let mut robots_at_position = vec![vec![0; cols]; rows];
-
-    let steps = 100;
-    // let positions: HashMap<&Robot, Coordinate> = robots.iter().map(|r| (&r.position, &r.position)).collect();
-    for robot in &robots {
-        println!("Robot {robot:?}");
-        let mut pos = robot.position;
-        for _ in 0..steps {
-            pos = pos + robot.vel;
+    let mut positions: Vec<Coordinate> = robots.iter().map(|robot| robot.position).collect();
+    for step in 0..steps {
+        for (position, robot) in positions.iter_mut().zip(&robots) {
+            *position += robot.vel;
+            *position %= Coordinate{col: cols, row: rows};
         }
-        println!("{:?}", pos);
-        pos.col = pos.col % cols;
-        println!("{:?}", pos);
-        pos.row = pos.row % rows;
-        println!("{:?}", pos);
+        if step == 99 {
+            result1 = calculate_safety_number(&positions, cols, rows, debug_print);
+        }
+        if is_christmas_tree(&positions, cols, rows, debug_print) {
+            result2 = step
+        }
+    }
+
+    if debug_print {
+        println!("Finished {steps} steps:");
+        print_positions(&positions, cols, rows);
+    }
+
+
+    (result1 as i64, result2 as i64)
+}
+
+fn print_positions(positions: &Vec<Coordinate>, cols: usize, rows: usize) {
+    let mut robots_at_position = vec![vec![0; cols]; rows];
+    for pos in positions {
         robots_at_position[pos.row][pos.col] += 1;
+    }
+    println!(
+        "All robots:\n{}",
+        robots_at_position
+            .iter()
+            .map(|row| row
+                .iter()
+                .map(|c| format!("{c}"))
+                .collect::<Vec<String>>()
+                .join(""))
+            .collect::<Vec<String>>()
+            .join("\n")
+    );
+}
+
+fn is_christmas_tree(positions: &Vec<Coordinate>, cols: usize, rows: usize, debug_print: bool) -> bool {
+    let highest_row_number = positions.iter().map(|pos|  pos.row).max().unwrap();
+    let bottom_row: Vec<&Coordinate> = positions.iter().filter(|pos| pos.row == highest_row_number).collect();
+    let cols_of_bottom_row: Vec<usize> = bottom_row.iter().map(|pos| pos.col).collect();
+    if cols_of_bottom_row.len() >= 3 && cols_of_bottom_row.iter().max().unwrap() - cols_of_bottom_row.iter().min().unwrap() == cols_of_bottom_row.len() - 1 {
+        print_positions(positions, cols, rows);
+    }
+    false
+}
+
+fn calculate_safety_number(positions: &Vec<Coordinate>, cols: usize, rows: usize, debug_print: bool) -> i64 {
+    let mut top_left = 0;
+    let mut top_right = 0;
+    let mut bot_left = 0;
+    let mut bot_right = 0;
+    for pos in positions {
         if debug_print {
-            println!("will be at position {pos:?} after {steps} steps");
+            println!("A robot will be at position {pos:?}");
         }
         if pos.col < cols / 2 && pos.row < rows / 2 {
             if debug_print {
                 println!("This is in quadrant top_left");
             }
-            top_left.push(pos);
+            top_left += 1;
         } else if pos.col > cols / 2 && pos.row < rows / 2 {
             if debug_print {
                 println!("This is in quadrant top_right");
             }
-            top_right.push(pos);
+            top_right += 1;
         } else if pos.col < cols / 2 && pos.row > rows / 2 {
             if debug_print {
                 println!("This is in quadrant bot_left");
             }
-            bot_left.push(pos);
+            bot_left += 1;
         } else if pos.col > cols / 2 && pos.row > rows / 2 {
             if debug_print {
                 println!("This is in quadrant bot_right");
             }
-            bot_right.push(pos);
-        } else if pos.col == cols / 2 && pos.row == rows / 2 {
-            if debug_print {
-                println!("This is in no quadrant (dead-center)");
-            }
-        } else if pos.col == cols / 2 {
-            if debug_print {
-                println!("This is in no quadrant (vertical-middle)");
-            }
-        } else if pos.row == rows / 2 {
-            if debug_print {
-                println!("This is in no quadrant (horizontal-middle)");
-            }
-        } else {
-            unreachable!()
+            bot_right += 1;
         }
     }
-    if debug_print {
-        println!(
-            "All robots:\n{}",
-            robots_at_position
-                .iter()
-                .map(|row| row
-                    .iter()
-                    .map(|c| format!("{c}"))
-                    .collect::<Vec<String>>()
-                    .join(""))
-                .collect::<Vec<String>>()
-                .join("\n")
-        );
-    }
-
-    if debug_print {
-        println!("Total in top_left: {}", top_left.len());
-    }
-    if debug_print {
-        println!("Total in top_right: {}", top_right.len());
-    }
-    if debug_print {
-        println!("Total in bot_left: {}", bot_left.len());
-    }
-    if debug_print {
-        println!("Total in bot_right: {}", bot_right.len());
-    }
-
-    let result1 = top_left.len() * top_right.len() * bot_left.len() * bot_right.len();
-    let result2 = 0;
-    (result1 as i64, result2 as i64)
+    top_left * top_right * bot_left * bot_right
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -126,6 +122,26 @@ impl Add for Coordinate {
             col: self.col + other.col,
             row: self.row + other.row,
         }
+    }
+}
+
+impl AddAssign for Coordinate {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs
+    }
+}
+
+impl RemAssign for Coordinate {
+    fn rem_assign(&mut self, rhs: Self) {
+        *self = *self % rhs
+    }
+}
+
+impl Rem<Coordinate> for Coordinate {
+    type Output = Coordinate;
+
+    fn rem(self, rhs: Coordinate) -> Self::Output {
+        Coordinate{col: self.col % rhs.col, row: self.row % rhs.row}
     }
 }
 
