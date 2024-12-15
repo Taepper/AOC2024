@@ -12,29 +12,31 @@ fn do_task(input: &String) -> (i64, i64) {
 
     let (cols, rows, robots) = parse_input(input);
 
-    let steps = 3000000;
+    let step_limit = 50000;
     let mut result1 = 0;
     let mut result2 = 0;
 
     let mut positions: Vec<Coordinate> = robots.iter().map(|robot| robot.position).collect();
-    for step in 0..steps {
+    for step in 0..step_limit {
         for (position, robot) in positions.iter_mut().zip(&robots) {
             *position += robot.vel;
-            *position %= Coordinate{col: cols, row: rows};
+            *position %= Coordinate {
+                col: cols,
+                row: rows,
+            };
         }
         if step == 99 {
             result1 = calculate_safety_number(&positions, cols, rows, debug_print);
         }
-        if is_christmas_tree(&positions, cols, rows, debug_print) {
-            result2 = step
+        if is_christmas_tree(&positions, cols, rows, step, debug_print) {
+            result2 = step + 1;
+            break;
         }
     }
 
     if debug_print {
-        println!("Finished {steps} steps:");
         print_positions(&positions, cols, rows);
     }
-
 
     (result1 as i64, result2 as i64)
 }
@@ -58,17 +60,46 @@ fn print_positions(positions: &Vec<Coordinate>, cols: usize, rows: usize) {
     );
 }
 
-fn is_christmas_tree(positions: &Vec<Coordinate>, cols: usize, rows: usize, debug_print: bool) -> bool {
-    let highest_row_number = positions.iter().map(|pos|  pos.row).max().unwrap();
-    let bottom_row: Vec<&Coordinate> = positions.iter().filter(|pos| pos.row == highest_row_number).collect();
-    let cols_of_bottom_row: Vec<usize> = bottom_row.iter().map(|pos| pos.col).collect();
-    if cols_of_bottom_row.len() >= 3 && cols_of_bottom_row.iter().max().unwrap() - cols_of_bottom_row.iter().min().unwrap() == cols_of_bottom_row.len() - 1 {
-        print_positions(positions, cols, rows);
+fn is_christmas_tree(
+    positions: &Vec<Coordinate>,
+    cols: usize,
+    rows: usize,
+    step: usize,
+    debug_print: bool,
+) -> bool {
+    let mut row_cols: Vec<Vec<usize>> = vec![Vec::new(); rows];
+    positions
+        .iter()
+        .for_each(|pos| row_cols[pos.row].push(pos.col));
+    let mut horizontal_rows = 0;
+    for mut col_ids in row_cols {
+        col_ids.sort_unstable();
+        for i in 3..col_ids.len() {
+            if col_ids[i - 3] + 1 == col_ids[i - 2]
+                && col_ids[i - 2] + 1 == col_ids[i - 1]
+                && col_ids[i - 1] + 1 == col_ids[i]
+            {
+                horizontal_rows += 1;
+            }
+        }
     }
-    false
+    if horizontal_rows >= 20 {
+        if debug_print {
+            println!("Step {}", step + 1);
+            print_positions(positions, cols, rows);
+        }
+        true
+    } else {
+        false
+    }
 }
 
-fn calculate_safety_number(positions: &Vec<Coordinate>, cols: usize, rows: usize, debug_print: bool) -> i64 {
+fn calculate_safety_number(
+    positions: &Vec<Coordinate>,
+    cols: usize,
+    rows: usize,
+    debug_print: bool,
+) -> i64 {
     let mut top_left = 0;
     let mut top_right = 0;
     let mut bot_left = 0;
@@ -141,7 +172,10 @@ impl Rem<Coordinate> for Coordinate {
     type Output = Coordinate;
 
     fn rem(self, rhs: Coordinate) -> Self::Output {
-        Coordinate{col: self.col % rhs.col, row: self.row % rhs.row}
+        Coordinate {
+            col: self.col % rhs.col,
+            row: self.row % rhs.row,
+        }
     }
 }
 
@@ -178,8 +212,16 @@ fn parse_input(input: &String) -> (usize, usize, Vec<Robot>) {
                 row: position[1],
             },
             vel: Coordinate {
-                col: if velocity[0] >= 0 { velocity[0] as usize } else { (cols as i64 + velocity[0]) as usize },
-                row: if velocity[1] >= 0 { velocity[1] as usize } else { (rows as i64 + velocity[1]) as usize },
+                col: if velocity[0] >= 0 {
+                    velocity[0] as usize
+                } else {
+                    (cols as i64 + velocity[0]) as usize
+                },
+                row: if velocity[1] >= 0 {
+                    velocity[1] as usize
+                } else {
+                    (rows as i64 + velocity[1]) as usize
+                },
             },
         });
     }
