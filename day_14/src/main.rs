@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::Add;
 use tae_aoclib2025::solve_all_inputs;
@@ -10,27 +11,17 @@ fn do_task(input: &String) -> (i64, i64) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 1000;
 
-    let robots = parse_input(input);
-
-    let width: i64 = if robots.iter().map(|r| r.position.col).max().unwrap() < 11 {
-        11
-    } else {
-        101
-    };
-    let height: i64 = if robots.iter().map(|r| r.position.row).max().unwrap() < 7 {
-        7
-    } else {
-        103
-    };
+    let (cols, rows, robots) = parse_input(input);
 
     let mut top_left = Vec::new();
     let mut top_right = Vec::new();
     let mut bot_left = Vec::new();
     let mut bot_right = Vec::new();
 
-    let mut robots_at_position = vec![vec![0; width as usize]; height as usize];
+    let mut robots_at_position = vec![vec![0; cols]; rows];
 
     let steps = 100;
+    // let positions: HashMap<&Robot, Coordinate> = robots.iter().map(|r| (&r.position, &r.position)).collect();
     for robot in &robots {
         println!("Robot {robot:?}");
         let mut pos = robot.position;
@@ -38,43 +29,43 @@ fn do_task(input: &String) -> (i64, i64) {
             pos = pos + robot.vel;
         }
         println!("{:?}", pos);
-        pos.col = (pos.col + 101 * width) % width;
+        pos.col = pos.col % cols;
         println!("{:?}", pos);
-        pos.row = (pos.row + 101 * height) % height;
+        pos.row = pos.row % rows;
         println!("{:?}", pos);
-        robots_at_position[pos.row as usize][pos.col as usize] += 1;
+        robots_at_position[pos.row][pos.col] += 1;
         if debug_print {
             println!("will be at position {pos:?} after {steps} steps");
         }
-        if pos.col < width / 2 && pos.row < height / 2 {
+        if pos.col < cols / 2 && pos.row < rows / 2 {
             if debug_print {
                 println!("This is in quadrant top_left");
             }
             top_left.push(pos);
-        } else if pos.col > width / 2 && pos.row < height / 2 {
+        } else if pos.col > cols / 2 && pos.row < rows / 2 {
             if debug_print {
                 println!("This is in quadrant top_right");
             }
             top_right.push(pos);
-        } else if pos.col < width / 2 && pos.row > height / 2 {
+        } else if pos.col < cols / 2 && pos.row > rows / 2 {
             if debug_print {
                 println!("This is in quadrant bot_left");
             }
             bot_left.push(pos);
-        } else if pos.col > width / 2 && pos.row > height / 2 {
+        } else if pos.col > cols / 2 && pos.row > rows / 2 {
             if debug_print {
                 println!("This is in quadrant bot_right");
             }
             bot_right.push(pos);
-        } else if pos.col == width / 2 && pos.row == height / 2 {
+        } else if pos.col == cols / 2 && pos.row == rows / 2 {
             if debug_print {
                 println!("This is in no quadrant (dead-center)");
             }
-        } else if pos.col == width / 2 {
+        } else if pos.col == cols / 2 {
             if debug_print {
                 println!("This is in no quadrant (vertical-middle)");
             }
-        } else if pos.row == height / 2 {
+        } else if pos.row == rows / 2 {
             if debug_print {
                 println!("This is in no quadrant (horizontal-middle)");
             }
@@ -112,14 +103,13 @@ fn do_task(input: &String) -> (i64, i64) {
 
     let result1 = top_left.len() * top_right.len() * bot_left.len() * bot_right.len();
     let result2 = 0;
-    println!("Dim: {}, {}", width, height);
     (result1 as i64, result2 as i64)
 }
 
 #[derive(Debug, Clone, Copy)]
 struct Coordinate {
-    col: i64,
-    row: i64,
+    col: usize,
+    row: usize,
 }
 
 impl Display for Coordinate {
@@ -145,7 +135,9 @@ struct Robot {
     vel: Coordinate,
 }
 
-fn parse_input(input: &String) -> Vec<Robot> {
+fn parse_input(input: &String) -> (usize, usize, Vec<Robot>) {
+    let cols = if input.lines().count() > 30 { 101 } else { 11 };
+    let rows = if input.lines().count() > 30 { 103 } else { 7 };
     let mut result = Vec::new();
     for line in input.lines() {
         let mut parts: Vec<&str> = line.split_whitespace().collect();
@@ -157,7 +149,7 @@ fn parse_input(input: &String) -> Vec<Robot> {
         let position = parts[0]
             .split(",")
             .map(|x| x.parse().unwrap())
-            .collect::<Vec<i64>>();
+            .collect::<Vec<usize>>();
         assert_eq!(position.len(), 2);
         let velocity = parts[1]
             .split(",")
@@ -170,10 +162,10 @@ fn parse_input(input: &String) -> Vec<Robot> {
                 row: position[1],
             },
             vel: Coordinate {
-                col: velocity[0],
-                row: velocity[1],
+                col: if velocity[0] >= 0 { velocity[0] as usize } else { (cols as i64 + velocity[0]) as usize },
+                row: if velocity[1] >= 0 { velocity[1] as usize } else { (rows as i64 + velocity[1]) as usize },
             },
         });
     }
-    result
+    (cols, rows, result)
 }
