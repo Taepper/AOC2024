@@ -1,4 +1,5 @@
-use std::cmp::min;use std::cmp::Reverse;
+use std::cmp::min;
+use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use tae_aoclib2025::{solve_all_inputs, step, Coordinate, Direction};
 
@@ -7,7 +8,7 @@ fn main() {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd, Ord)]
-struct State{
+struct State {
     coordinate: Coordinate,
     direction: Direction,
 }
@@ -22,7 +23,10 @@ fn do_task(input: &String) -> (i64, i64) {
     let mut predecessors = HashMap::new();
 
     let mut queue = BinaryHeap::new();
-    let start = State{coordinate: map.start, direction:  Direction::Right};
+    let start = State {
+        coordinate: map.start,
+        direction: Direction::Right,
+    };
     queue.push(Reverse((0usize, start.clone())));
     scores.insert(start, 0usize);
     while let Some(Reverse((cur_score, cur))) = queue.pop() {
@@ -35,20 +39,29 @@ fn do_task(input: &String) -> (i64, i64) {
         // Straight
         let new_pos = step(cur.coordinate, &cur.direction, 1);
         if map.obstacles[new_pos.row][new_pos.col] == false {
-            let new_state = State{coordinate: new_pos, direction: cur.direction};
+            let new_state = State {
+                coordinate: new_pos,
+                direction: cur.direction,
+            };
             let new_score = cur_score + 1;
             moves.push((new_state, new_score));
         }
 
         // Left
         let new_dir = cur.direction.turn_left();
-        let new_state = State{coordinate: cur.coordinate, direction: new_dir};
+        let new_state = State {
+            coordinate: cur.coordinate,
+            direction: new_dir,
+        };
         let new_score = cur_score + 1000;
         moves.push((new_state, new_score));
 
         // Right
         let new_dir = cur.direction.turn_right();
-        let new_state = State{coordinate: cur.coordinate, direction: new_dir};
+        let new_state = State {
+            coordinate: cur.coordinate,
+            direction: new_dir,
+        };
         let new_score = cur_score + 1000;
         moves.push((new_state, new_score));
 
@@ -67,23 +80,80 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
+    print_predecessor_path(
+        State {
+            coordinate: map.end,
+            direction: Direction::Up,
+        },
+        &map,
+        &predecessors,
+    );
 
-
-    print_predecessor_path(State{coordinate: map.end, direction: Direction::Up}, &map, &predecessors);
-
-    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Left}).unwrap());
-    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Right}).unwrap());
-    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Up}).unwrap());
-    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Down}).unwrap());
+    println!(
+        "{}",
+        *scores
+            .get(&State {
+                coordinate: map.end,
+                direction: Direction::Left
+            })
+            .unwrap()
+    );
+    println!(
+        "{}",
+        *scores
+            .get(&State {
+                coordinate: map.end,
+                direction: Direction::Right
+            })
+            .unwrap()
+    );
+    println!(
+        "{}",
+        *scores
+            .get(&State {
+                coordinate: map.end,
+                direction: Direction::Up
+            })
+            .unwrap()
+    );
+    println!(
+        "{}",
+        *scores
+            .get(&State {
+                coordinate: map.end,
+                direction: Direction::Down
+            })
+            .unwrap()
+    );
 
     let result1 = min(
         min(
-            *scores.get(&State{coordinate: map.end, direction: Direction::Left}).unwrap(),
-            *scores.get(&State{coordinate: map.end, direction: Direction::Right}).unwrap(),
+            *scores
+                .get(&State {
+                    coordinate: map.end,
+                    direction: Direction::Left,
+                })
+                .unwrap(),
+            *scores
+                .get(&State {
+                    coordinate: map.end,
+                    direction: Direction::Right,
+                })
+                .unwrap(),
         ),
         min(
-            *scores.get(&State{coordinate: map.end, direction: Direction::Up}).unwrap(),
-            *scores.get(&State{coordinate: map.end, direction: Direction::Down}).unwrap(),
+            *scores
+                .get(&State {
+                    coordinate: map.end,
+                    direction: Direction::Up,
+                })
+                .unwrap(),
+            *scores
+                .get(&State {
+                    coordinate: map.end,
+                    direction: Direction::Down,
+                })
+                .unwrap(),
         ),
     );
     let mut result2 = 0;
@@ -91,11 +161,7 @@ fn do_task(input: &String) -> (i64, i64) {
     (result1 as i64, result2)
 }
 
-fn print_predecessor_path(
-    mut pos: State,
-    map: &Map,
-    predecessors: &HashMap<State, State>,
-) {
+fn print_predecessor_path(mut pos: State, map: &Map, predecessors: &HashMap<State, State>) {
     let mut map_chars = map
         .obstacles
         .iter()
@@ -108,14 +174,19 @@ fn print_predecessor_path(
 
     while let Some(new_pos) = predecessors.get(&pos) {
         pos = new_pos.clone();
-        map_chars[pos.coordinate.row][pos.coordinate.col] = new_pos.direction.to_string().chars().next().unwrap();
+        map_chars[pos.coordinate.row][pos.coordinate.col] =
+            new_pos.direction.to_string().chars().next().unwrap();
     }
 
     println!(
         "{}",
         map_chars
             .iter()
-            .map(|x| x.iter().map(|c| format!("{}", c)).collect::<Vec<String>>().join(""))
+            .map(|x| x
+                .iter()
+                .map(|c| format!("{}", c))
+                .collect::<Vec<String>>()
+                .join(""))
             .collect::<Vec<String>>()
             .join("\n")
     );
