@@ -32,91 +32,66 @@ fn do_task(input: &String) -> (i64, i64) {
                 break;
             }
         }
-        if any_matches(&numbers, goal, execute_three_backwards) {
+        if any_matches(&numbers, goal, debug_print) {
             result2 += goal as u128;
         }
     }
     (result1 as i64, result2 as i64)
 }
 
-fn any_matches(
-    numbers: &Vec<(u64, u32)>,
-    goal: u64,
-    f: fn(&Vec<(u64, u32)>, u64, u64) -> bool,
-) -> bool {
-    let n = numbers.len();
-    let mut seed = 0;
-    while seed < (1 << (2 * n - 1)) {
-        if f(&numbers, seed, goal) || f(&numbers, seed + 1, goal) || f(&numbers, seed + 2, goal) {
+fn any_matches(numbers: &Vec<(u64, u32)>, goal: u64, debug_print: bool) -> bool {
+    if debug_print {
+        println!("Checking numbers: {:?}", numbers);
+    }
+    let mut possible_result_after_tries = vec![goal];
+    for (number, strlen) in numbers.iter().skip(1).rev() {
+        let mut new_possible_result_after_tries = Vec::new();
+        for result in possible_result_after_tries {
+            // Was it an add?
+            if result >= *number {
+                if debug_print {
+                    println!(
+                        "{result} could have been formed by _{}_ + {number}",
+                        result - *number
+                    );
+                }
+                new_possible_result_after_tries.push(result - *number);
+            }
+
+            // Was it an mul?
+            if result % *number == 0 {
+                if debug_print {
+                    println!(
+                        "{result} could have been formed by _{}_ * {number}",
+                        result / *number
+                    );
+                }
+                new_possible_result_after_tries.push(result / *number);
+            }
+
+            // Was it a concat?
+            let end_digit_exponent = 10_u64.pow(*strlen);
+            if result % end_digit_exponent == *number {
+                if debug_print {
+                    println!(
+                        "{result} could have been formed by _{}_ || {number}",
+                        result / end_digit_exponent
+                    );
+                }
+                new_possible_result_after_tries.push(result / end_digit_exponent);
+            }
+        }
+        possible_result_after_tries = new_possible_result_after_tries;
+    }
+    for result in possible_result_after_tries {
+        if result == numbers.first().unwrap().0 {
+            if debug_print {
+                println!("Found number {result} in final candidates!");
+            }
             return true;
         }
-        seed += 4;
     }
     false
-}
-
-fn valid_ternary_seed(mut seed: u64) -> bool {
-    while seed > 0 {
-        if seed & 0b11 == 0b11 {
-            return false;
-        }
-        seed >>= 2;
-    }
-    true
-}
-
-fn execute_three(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) -> bool {
-    if !valid_ternary_seed(seed) {
-        return false;
-    }
-    let mut numbers = numbers.iter();
-    let (mut result, _strlen) = *numbers.next().unwrap();
-    for (n, strlen) in numbers {
-        assert_ne!(seed & 0b11, 0b11);
-        if seed & 0b11 == 0b00 {
-            result += *n;
-        } else if seed & 0b11 == 0b01 {
-            result *= *n;
-        } else if seed & 0b11 == 0b10 {
-            result *= 10_u64.pow(*strlen);
-            result += n;
-        }
-        if result > goal {
-            return false;
-        }
-        seed >>= 2;
-    }
-    result == goal
-}
-
-fn execute_three_backwards(numbers: &Vec<(u64, u32)>, mut seed: u64, goal: u64) -> bool {
-    if !valid_ternary_seed(seed) {
-        return false;
-    }
-    let numbers_iter = numbers.iter().skip(1).rev();
-    let mut result = goal;
-    for (n, strlen) in numbers_iter {
-        assert_ne!(seed & 0b11, 0b11);
-        if seed & 0b11 == 0b00 {
-            if result < *n {
-                return false;
-            }
-            result -= *n;
-        } else if seed & 0b11 == 0b01 {
-            if result % n > 0 {
-                return false;
-            }
-            result /= *n;
-        } else if seed & 0b11 == 0b10 {
-            let end_digit_exponent = 10_u64.pow(*strlen);
-            if result % end_digit_exponent != *n {
-                return false;
-            }
-            result /= end_digit_exponent;
-        }
-        seed >>= 2;
-    }
-    result == numbers.first().unwrap().0
 }
 
 fn execute(numbers: &Vec<(u64, u32)>, mut seed: u64) -> u64 {
