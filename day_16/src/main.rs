@@ -1,9 +1,15 @@
-use std::cmp::min;
-use std::collections::HashMap;
+use std::cmp::min;use std::cmp::Reverse;
+use std::collections::{BinaryHeap, HashMap};
 use tae_aoclib2025::{solve_all_inputs, step, Coordinate, Direction};
 
 fn main() {
     solve_all_inputs("day_16", do_task)
+}
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq, PartialOrd, Ord)]
+struct State{
+    coordinate: Coordinate,
+    direction: Direction,
 }
 
 fn do_task(input: &String) -> (i64, i64) {
@@ -15,65 +21,99 @@ fn do_task(input: &String) -> (i64, i64) {
     let mut scores = HashMap::new();
     let mut predecessors = HashMap::new();
 
-    let mut stack = Vec::new();
-    stack.push((map.start, Direction::Left));
-    scores.insert((map.start, Direction::Left), 0usize);
-    while let Some((cur_pos, cur_dir)) = stack.pop() {
-        let cur_score = scores[&(cur_pos, cur_dir)];
+    let mut queue = BinaryHeap::new();
+    let start = State{coordinate: map.start, direction:  Direction::Left};
+    queue.push(Reverse((0usize, start.clone())));
+    scores.insert(start, 0usize);
+    while let Some(Reverse((cur_score, cur))) = queue.pop() {
         if debug_print {
-            println!("{cur_pos}: score {cur_score}");
+            println!("{cur:?}: score {cur_score}");
         }
 
         let mut moves = Vec::new();
 
         // Straight
-        let new_pos = step(cur_pos, &cur_dir, 1);
+        let new_pos = step(cur.coordinate, &cur.direction, 1);
         if map.obstacles[new_pos.row][new_pos.col] == false {
-            let new_dir = cur_dir;
+            let new_state = State{coordinate: new_pos, direction: cur.direction};
             let new_score = cur_score + 1;
-            moves.push((new_pos, new_dir, new_score));
+            moves.push((new_state, new_score));
         }
 
         // Left
-        let new_pos = cur_pos;
-        let new_dir = cur_dir.turn_left();
+        let new_dir = cur.direction.turn_left();
+        let new_state = State{coordinate: cur.coordinate, direction: new_dir};
         let new_score = cur_score + 1000;
-        moves.push((new_pos, new_dir, new_score));
+        moves.push((new_state, new_score));
 
         // Right
-        let new_pos = cur_pos;
-        let new_dir = cur_dir.turn_right();
+        let new_dir = cur.direction.turn_right();
+        let new_state = State{coordinate: cur.coordinate, direction: new_dir};
         let new_score = cur_score + 1000;
-        moves.push((new_pos, new_dir, new_score));
+        moves.push((new_state, new_score));
 
-        for (new_pos, new_dir, new_score) in moves.into_iter() {
-            if let Some(&score) = scores.get(&(new_pos, new_dir)) {
+        for (new_state, new_score) in moves.into_iter() {
+            if let Some(&score) = scores.get(&new_state) {
                 if new_score < score {
-                    stack.push((new_pos, new_dir));
-                    scores.insert((new_pos, new_dir), new_score);
-                    predecessors.insert(new_pos, (cur_pos, cur_dir));
+                    queue.push(Reverse((new_score, new_state.clone())));
+                    scores.insert(new_state.clone(), new_score);
+                    predecessors.insert(new_state, cur.clone());
                 }
             } else {
-                stack.push((new_pos, new_dir));
-                scores.insert((new_pos, new_dir), new_score);
-                predecessors.insert(new_pos, (cur_pos, cur_dir));
+                queue.push(Reverse((new_score, new_state.clone())));
+                scores.insert(new_state.clone(), new_score);
+                predecessors.insert(new_state, cur.clone());
             }
         }
     }
 
+
+
+    print_predecessor_path(State{coordinate: map.end, direction: Direction::Up}, &map, &predecessors);
+
     let result1 = min(
         min(
-            *scores.get(&(map.end, Direction::Left)).unwrap(),
-            *scores.get(&(map.end, Direction::Right)).unwrap(),
+            *scores.get(&State{coordinate: map.end, direction: Direction::Left}).unwrap(),
+            *scores.get(&State{coordinate: map.end, direction: Direction::Right}).unwrap(),
         ),
         min(
-            *scores.get(&(map.end, Direction::Up)).unwrap(),
-            *scores.get(&(map.end, Direction::Down)).unwrap(),
+            *scores.get(&State{coordinate: map.end, direction: Direction::Up}).unwrap(),
+            *scores.get(&State{coordinate: map.end, direction: Direction::Down}).unwrap(),
         ),
     );
     let mut result2 = 0;
 
     (result1 as i64, result2)
+}
+
+fn print_predecessor_path(
+    mut pos: State,
+    map: &Map,
+    predecessors: &HashMap<State, State>,
+) {
+    let mut map_chars = map
+        .obstacles
+        .iter()
+        .map(|x| {
+            x.iter()
+                .map(|x| if *x { '#' } else { '.' })
+                .collect::<Vec<char>>()
+        })
+        .collect::<Vec<Vec<char>>>();
+
+    while let Some(new_pos) = predecessors.get(&pos) {
+        pos = new_pos.clone();
+        map_chars[pos.coordinate.row][pos.coordinate.col] = new_pos.direction.to_string().chars().next().unwrap();
+    }
+
+    println!(
+        "{}",
+        map_chars
+            .iter()
+            .map(|x| x.iter().map(|c| format!("{}", c)).collect::<Vec<String>>().join(""))
+            .collect::<Vec<String>>()
+            .join("\n")
+    );
 }
 
 struct Map {

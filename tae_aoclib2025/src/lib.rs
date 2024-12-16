@@ -51,7 +51,7 @@ pub fn format_duration(duration: Duration) -> String {
     format!("{}.{:0>3} micros", duration_micros, duration_nanos)
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Coordinate {
     pub col: usize,
     pub row: usize,
@@ -97,7 +97,7 @@ impl Rem<Coordinate> for Coordinate {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Copy, Hash)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum Direction {
     Up,
     Down,
