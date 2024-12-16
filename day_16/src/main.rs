@@ -99,14 +99,16 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
-    print_one_predecessor_path(
-        State {
-            coordinate: map.end,
-            direction: Direction::Up,
-        },
-        &map,
-        &predecessors,
-    );
+    if debug_print {
+        print_one_predecessor_path(
+            State {
+                coordinate: map.end,
+                direction: Direction::Up,
+            },
+            &map,
+            &predecessors,
+        );
+    }
 
     let result2 = count_all_predecessor_paths(
         State {
@@ -115,6 +117,7 @@ fn do_task(input: &String) -> (i64, i64) {
         },
         &map,
         &predecessors,
+        debug_print,
     );
 
     let result1 = *end_states
@@ -146,15 +149,12 @@ fn count_all_predecessor_paths(
     pos: State,
     map: &Map,
     predecessors: &HashMap<State, Vec<State>>,
+    debug_print: bool,
 ) -> usize {
-    let mut map_chars = init_char_map(map);
-
     let mut visited_predecessors = HashSet::new();
-
     let mut queue = vec![pos];
     while let Some(pos) = queue.pop() {
         if !visited_predecessors.contains(&pos) {
-            map_chars[pos.coordinate.row][pos.coordinate.col] = 'O';
             if let Some(new_positions) = predecessors.get(&pos) {
                 for new_pos in new_positions {
                     if !visited_predecessors.contains(new_pos) {
@@ -166,7 +166,13 @@ fn count_all_predecessor_paths(
         }
     }
 
-    print_char_map(&map_chars);
+    if debug_print {
+        let mut map_chars = init_char_map(map);
+        for state in &visited_predecessors {
+            map_chars[state.coordinate.row][state.coordinate.col] = 'O';
+        }
+        print_char_map(&map_chars);
+    }
 
     let mut visited_coordinates = HashSet::new();
     for x in visited_predecessors {
