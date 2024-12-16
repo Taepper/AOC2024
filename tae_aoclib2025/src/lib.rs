@@ -105,6 +105,17 @@ pub enum Direction {
     Right,
 }
 
+impl From<Direction> for char {
+    fn from(value: Direction) -> Self {
+        match value {
+            Direction::Up => '^',
+            Direction::Down => 'v',
+            Direction::Left => '<',
+            Direction::Right => '>',
+        }
+    }
+}
+
 impl Direction {
     pub fn turn_left(&self) -> Direction {
         match self {
@@ -127,16 +138,7 @@ impl Direction {
 
 impl Display for Direction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Direction::Up => '^',
-                Direction::Down => 'v',
-                Direction::Left => '<',
-                Direction::Right => '>',
-            },
-        )
+        write!(f, "{}", char::from(*self))
     }
 }
 

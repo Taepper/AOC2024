@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use tae_aoclib2025::solve_all_inputs;
+use tae_aoclib2025::{solve_all_inputs, Coordinate, Direction};
 
 fn main() {
     solve_all_inputs("day_06", do_task)
@@ -9,46 +9,42 @@ fn do_task(input: &String) -> (i64, i64) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
 
     let mut board = parse_input(input);
-    let mut history: HashSet<Position> = HashSet::new();
+    let mut history: Vec<Position> = Vec::new();
 
-    let mut all_visited_squares: HashSet<(usize, usize)> = HashSet::new();
+    let mut all_visited_squares: HashSet<Coordinate> = HashSet::new();
     let mut potential_new_obstacles = HashSet::new();
 
-    let mut position = board.start_position;
-    history.insert(position);
-    all_visited_squares.insert((position.x, position.y));
+    let mut cur_position = board.start_position;
+    all_visited_squares.insert(cur_position.coordinate);
 
     loop {
         if debug_print {
             print_state(&board, &history);
         }
-        match step(&board, &position, debug_print) {
+        match step(&board, &cur_position, debug_print) {
             None => {
                 break;
             }
             Some(new_position) => {
-                position = new_position;
+                cur_position = new_position;
             }
         }
-        if history.contains(&position) {
-            panic!("Found a loop, when we should run off the board.")
-        }
-        history.insert(position);
-        all_visited_squares.insert((position.x, position.y));
+        history.push(cur_position);
+        all_visited_squares.insert(cur_position.coordinate);
 
-        if let Some(potential_obstacle) = get_next_square(&board, &position, debug_print) {
-            if !board.obstacles.contains(&potential_obstacle)
+        if let Some(potential_obstacle) = get_next_square(&board, &cur_position, debug_print) {
+            if !board.obstacles[potential_obstacle.row][potential_obstacle.col]
                 && !potential_new_obstacles.contains(&potential_obstacle)
                 && !all_visited_squares.contains(&potential_obstacle)
             {
-                board.obstacles.insert(potential_obstacle);
-                if is_looping(&board, position, &history, debug_print) {
+                board.obstacles[potential_obstacle.row][potential_obstacle.col] = true;
+                if is_looping(&board, cur_position, debug_print) {
                     potential_new_obstacles.insert(potential_obstacle);
                     if debug_print {
                         print_state(&board, &history);
                     }
                 }
-                board.obstacles.remove(&potential_obstacle);
+                board.obstacles[potential_obstacle.row][potential_obstacle.col] = false;
             }
         }
     }
@@ -58,13 +54,10 @@ fn do_task(input: &String) -> (i64, i64) {
     (result1 as i64, result2 as i64)
 }
 
-fn is_looping(
-    board: &Board,
-    mut position: Position,
-    original_history: &HashSet<Position>,
-    debug_print: bool,
-) -> bool {
-    let mut local_history: HashSet<Position> = HashSet::new();
+fn is_looping(board: &Board, mut position: Position, debug_print: bool) -> bool {
+    let mut loop_position = position.clone();
+    let mut steps_for_new_position = 100;
+    let mut last_steps_for_new_position = 100;
     loop {
         match step(board, &position, debug_print) {
             None => {
@@ -72,19 +65,18 @@ fn is_looping(
             }
             Some(new_position) => {
                 position = new_position;
-                if original_history.contains(&position) {
+                if position == loop_position {
                     if debug_print {
-                        println!("Loop!");
+                        println!("Loop!2");
                     }
                     return true;
                 }
-                if local_history.contains(&position) {
-                    if debug_print {
-                        println!("Loop2!");
-                    }
-                    return true;
+                steps_for_new_position -= 1;
+                if steps_for_new_position == 0 {
+                    loop_position = position.clone();
+                    steps_for_new_position = last_steps_for_new_position * 2;
+                    last_steps_for_new_position = steps_for_new_position;
                 }
-                local_history.insert(position);
             }
         }
     }
@@ -92,17 +84,15 @@ fn is_looping(
 
 fn step(board: &Board, position: &Position, debug_print: bool) -> Option<Position> {
     let next_square = get_next_square(board, position, debug_print);
-    if let Some(next_square) = next_square {
-        if board.obstacles.contains(&next_square) {
+    if let Some(next_coord) = next_square {
+        if board.obstacles[next_coord.row][next_coord.col] {
             Some(Position {
-                x: position.x,
-                y: position.y,
-                direction: turn(position.direction),
+                coordinate: position.coordinate,
+                direction: position.direction.turn_right(),
             })
         } else {
             Some(Position {
-                x: next_square.0,
-                y: next_square.1,
+                coordinate: next_coord,
                 direction: position.direction,
             })
         }
@@ -111,47 +101,55 @@ fn step(board: &Board, position: &Position, debug_print: bool) -> Option<Positio
     }
 }
 
-fn get_next_square(
-    board: &Board,
-    position: &Position,
-    debug_print: bool,
-) -> Option<(usize, usize)> {
+fn get_next_square(board: &Board, position: &Position, debug_print: bool) -> Option<Coordinate> {
     match position.direction {
-        Direction::LEFT => {
-            if position.y == 0 {
+        Direction::Left => {
+            if position.coordinate.col == 0 {
                 if debug_print {
                     println!("Moved off the board - left.")
                 }
                 return None;
             }
-            Some((position.x, position.y - 1))
+            Some(Coordinate {
+                row: position.coordinate.row,
+                col: position.coordinate.col - 1,
+            })
         }
-        Direction::UP => {
-            if position.x == 0 {
+        Direction::Up => {
+            if position.coordinate.row == 0 {
                 if debug_print {
                     println!("Moved off the board - up.")
                 }
                 return None;
             }
-            Some((position.x - 1, position.y))
+            Some(Coordinate {
+                row: position.coordinate.row - 1,
+                col: position.coordinate.col,
+            })
         }
-        Direction::RIGHT => {
-            if position.y == board.width - 1 {
+        Direction::Right => {
+            if position.coordinate.col == board.width - 1 {
                 if debug_print {
                     println!("Moved off the board - right.")
                 }
                 return None;
             }
-            Some((position.x, position.y + 1))
+            Some(Coordinate {
+                row: position.coordinate.row,
+                col: position.coordinate.col + 1,
+            })
         }
-        Direction::DOWN => {
-            if position.x == board.height - 1 {
+        Direction::Down => {
+            if position.coordinate.row == board.height - 1 {
                 if debug_print {
                     println!("Moved off the board - down.")
                 }
                 return None;
             }
-            Some((position.x + 1, position.y))
+            Some(Coordinate {
+                row: position.coordinate.row + 1,
+                col: position.coordinate.col,
+            })
         }
     }
 }
@@ -159,21 +157,19 @@ fn get_next_square(
 fn parse_input(input: &String) -> Board {
     let width: usize = input.lines().next().unwrap().len();
     let height: usize = input.lines().count();
-    let mut obstacles: HashSet<(usize, usize)> = HashSet::new();
+    let mut obstacles: Vec<Vec<bool>> = vec![vec![false; width]; height];
     let mut start_position: Position = Position {
-        x: 0,
-        y: 0,
-        direction: Direction::UP,
+        coordinate: Coordinate { row: 0, col: 0 },
+        direction: Direction::Up,
     };
-    for (x, line) in input.lines().enumerate() {
-        for (y, c) in line.chars().enumerate() {
+    for (row, line) in input.lines().enumerate() {
+        for (col, c) in line.chars().enumerate() {
             if c == '#' {
-                obstacles.insert((x, y));
+                obstacles[row][col] = true;
             } else if c == '^' {
                 start_position = Position {
-                    x,
-                    y,
-                    direction: Direction::UP,
+                    coordinate: Coordinate { row, col },
+                    direction: Direction::Up,
                 };
             }
         }
@@ -186,22 +182,20 @@ fn parse_input(input: &String) -> Board {
     }
 }
 
-fn print_state(board: &Board, history: &HashSet<Position>) {
-    let mut result = Vec::new();
-    result.resize(board.height, vec!['.'; board.width]);
-    for (x, y) in board.obstacles.iter() {
-        result[*x][*y] = '#';
-    }
-    result[board.start_position.x][board.start_position.y] = '^';
+fn print_state(board: &Board, history: &Vec<Position>) {
+    let mut result = board
+        .obstacles
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|occupied| if *occupied { '#' } else { '.' })
+                .collect::<Vec<char>>()
+        })
+        .collect::<Vec<Vec<char>>>();
+    result[board.start_position.coordinate.row][board.start_position.coordinate.col] = '^';
 
     for pos in history.iter() {
-        let char = match pos.direction {
-            Direction::LEFT => '<',
-            Direction::UP => '^',
-            Direction::RIGHT => '>',
-            Direction::DOWN => 'v',
-        };
-        result[pos.x][pos.y] = char;
+        result[pos.coordinate.row][pos.coordinate.col] = pos.direction.into();
     }
 
     for line in result {
@@ -210,32 +204,14 @@ fn print_state(board: &Board, history: &HashSet<Position>) {
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
-enum Direction {
-    LEFT,
-    UP,
-    RIGHT,
-    DOWN,
-}
-
-fn turn(dir: Direction) -> Direction {
-    match dir {
-        Direction::LEFT => Direction::UP,
-        Direction::UP => Direction::RIGHT,
-        Direction::RIGHT => Direction::DOWN,
-        Direction::DOWN => Direction::LEFT,
-    }
-}
-
-#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
 struct Position {
-    x: usize,
-    y: usize,
+    coordinate: Coordinate,
     direction: Direction,
 }
 
 struct Board {
     width: usize,
     height: usize,
-    obstacles: HashSet<(usize, usize)>,
+    obstacles: Vec<Vec<bool>>,
     start_position: Position,
 }
