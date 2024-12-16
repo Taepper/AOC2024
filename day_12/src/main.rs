@@ -7,7 +7,6 @@ fn main() {
 
 #[derive(Default, Debug)]
 struct Region {
-    character: char,
     area: usize,
     perimeter: usize,
     inside_corners: usize,
@@ -124,7 +123,6 @@ fn do_task(input: &String) -> (i64, i64) {
                 regions.insert(
                     region_key,
                     Region {
-                        character,
                         area: 1,
                         perimeter,
                         inside_corners,
