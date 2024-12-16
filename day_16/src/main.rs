@@ -22,7 +22,7 @@ fn do_task(input: &String) -> (i64, i64) {
     let mut predecessors = HashMap::new();
 
     let mut queue = BinaryHeap::new();
-    let start = State{coordinate: map.start, direction:  Direction::Left};
+    let start = State{coordinate: map.start, direction:  Direction::Right};
     queue.push(Reverse((0usize, start.clone())));
     scores.insert(start, 0usize);
     while let Some(Reverse((cur_score, cur))) = queue.pop() {
@@ -70,6 +70,11 @@ fn do_task(input: &String) -> (i64, i64) {
 
 
     print_predecessor_path(State{coordinate: map.end, direction: Direction::Up}, &map, &predecessors);
+
+    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Left}).unwrap());
+    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Right}).unwrap());
+    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Up}).unwrap());
+    println!("{}", *scores.get(&State{coordinate: map.end, direction: Direction::Down}).unwrap());
 
     let result1 = min(
         min(
