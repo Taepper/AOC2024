@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use tae_aoclib2025::{solve_all_inputs, Coordinate};
+use tae_aoclib2025::{solve_all_inputs, step, Coordinate, Direction};
 
 fn main() {
     solve_all_inputs("day_15", do_task)
@@ -234,29 +234,6 @@ fn next(mut state: MapState, direction: &Direction) -> MapState {
     }
 }
 
-fn step(coord: Coordinate, direction: &Direction, steps: usize) -> Coordinate {
-    let col = coord.col;
-    let row = coord.row;
-    match direction {
-        Direction::Up => Coordinate {
-            col,
-            row: row - steps,
-        },
-        Direction::Down => Coordinate {
-            col,
-            row: row + steps,
-        },
-        Direction::Left => Coordinate {
-            col: col - steps,
-            row,
-        },
-        Direction::Right => Coordinate {
-            col: col + steps,
-            row,
-        },
-    }
-}
-
 fn print_map(map: &Vec<Vec<Object>>) {
     let string = map
         .iter()
@@ -283,29 +260,6 @@ fn print_wide_map(map: &Vec<Vec<WideObject>>) {
         .collect::<Vec<String>>()
         .join("\n");
     println!("{}", string);
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
-enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-impl Display for Direction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Direction::Up => '^',
-                Direction::Down => 'v',
-                Direction::Left => '<',
-                Direction::Right => '>',
-            },
-        )
-    }
 }
 
 #[derive(Debug, Clone)]

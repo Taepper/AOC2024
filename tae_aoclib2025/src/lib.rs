@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::fs;
 use std::ops::{Add, AddAssign, Rem, RemAssign};
 use std::path::{Path, PathBuf};
@@ -94,5 +94,71 @@ impl Rem<Coordinate> for Coordinate {
             col: self.col % rhs.col,
             row: self.row % rhs.row,
         }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Hash)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Direction {
+    pub fn turn_left(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Left,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Right => Direction::Up,
+        }
+    }
+
+    pub fn turn_right(&self) -> Direction {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Right => Direction::Down,
+        }
+    }
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Direction::Up => '^',
+                Direction::Down => 'v',
+                Direction::Left => '<',
+                Direction::Right => '>',
+            },
+        )
+    }
+}
+
+pub fn step(coord: Coordinate, direction: &Direction, steps: usize) -> Coordinate {
+    let col = coord.col;
+    let row = coord.row;
+    match direction {
+        Direction::Up => Coordinate {
+            col,
+            row: row - steps,
+        },
+        Direction::Down => Coordinate {
+            col,
+            row: row + steps,
+        },
+        Direction::Left => Coordinate {
+            col: col - steps,
+            row,
+        },
+        Direction::Right => Coordinate {
+            col: col + steps,
+            row,
+        },
     }
 }
