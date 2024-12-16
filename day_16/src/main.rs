@@ -1,6 +1,5 @@
-use std::cmp::min;
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use tae_aoclib2025::{solve_all_inputs, step, Coordinate, Direction};
 
 fn main() {
@@ -27,6 +26,24 @@ fn do_task(input: &String) -> (i64, i64) {
         coordinate: map.start,
         direction: Direction::Right,
     };
+    let end_states = vec![
+        State {
+            coordinate: map.end,
+            direction: Direction::Left,
+        },
+        State {
+            coordinate: map.end,
+            direction: Direction::Right,
+        },
+        State {
+            coordinate: map.end,
+            direction: Direction::Up,
+        },
+        State {
+            coordinate: map.end,
+            direction: Direction::Down,
+        },
+    ];
     queue.push(Reverse((0usize, start.clone())));
     scores.insert(start, 0usize);
     while let Some(Reverse((cur_score, cur))) = queue.pop() {
@@ -70,17 +87,19 @@ fn do_task(input: &String) -> (i64, i64) {
                 if new_score < score {
                     queue.push(Reverse((new_score, new_state.clone())));
                     scores.insert(new_state.clone(), new_score);
-                    predecessors.insert(new_state, cur.clone());
+                    predecessors.insert(new_state, vec![cur.clone()]);
+                } else if new_score == score {
+                    predecessors.get_mut(&new_state).unwrap().push(cur.clone());
                 }
             } else {
                 queue.push(Reverse((new_score, new_state.clone())));
                 scores.insert(new_state.clone(), new_score);
-                predecessors.insert(new_state, cur.clone());
+                predecessors.insert(new_state, vec![cur.clone()]);
             }
         }
     }
 
-    print_predecessor_path(
+    print_one_predecessor_path(
         State {
             coordinate: map.end,
             direction: Direction::Up,
@@ -89,98 +108,88 @@ fn do_task(input: &String) -> (i64, i64) {
         &predecessors,
     );
 
-    println!(
-        "{}",
-        *scores
-            .get(&State {
-                coordinate: map.end,
-                direction: Direction::Left
-            })
-            .unwrap()
-    );
-    println!(
-        "{}",
-        *scores
-            .get(&State {
-                coordinate: map.end,
-                direction: Direction::Right
-            })
-            .unwrap()
-    );
-    println!(
-        "{}",
-        *scores
-            .get(&State {
-                coordinate: map.end,
-                direction: Direction::Up
-            })
-            .unwrap()
-    );
-    println!(
-        "{}",
-        *scores
-            .get(&State {
-                coordinate: map.end,
-                direction: Direction::Down
-            })
-            .unwrap()
+    let result2 = count_all_predecessor_paths(
+        State {
+            coordinate: map.end,
+            direction: Direction::Up,
+        },
+        &map,
+        &predecessors,
     );
 
-    let result1 = min(
-        min(
-            *scores
-                .get(&State {
-                    coordinate: map.end,
-                    direction: Direction::Left,
-                })
-                .unwrap(),
-            *scores
-                .get(&State {
-                    coordinate: map.end,
-                    direction: Direction::Right,
-                })
-                .unwrap(),
-        ),
-        min(
-            *scores
-                .get(&State {
-                    coordinate: map.end,
-                    direction: Direction::Up,
-                })
-                .unwrap(),
-            *scores
-                .get(&State {
-                    coordinate: map.end,
-                    direction: Direction::Down,
-                })
-                .unwrap(),
-        ),
-    );
-    let mut result2 = 0;
+    let result1 = *end_states
+        .iter()
+        .map(|x| scores.get(x).unwrap())
+        .min()
+        .unwrap();
 
-    (result1 as i64, result2)
+    (result1 as i64, result2 as i64)
 }
 
-fn print_predecessor_path(mut pos: State, map: &Map, predecessors: &HashMap<State, State>) {
-    let mut map_chars = map
-        .obstacles
+fn print_one_predecessor_path(
+    mut pos: State,
+    map: &Map,
+    predecessors: &HashMap<State, Vec<State>>,
+) {
+    let mut map_chars = init_char_map(map);
+
+    while let Some(new_pos) = predecessors.get(&pos) {
+        pos = new_pos.first().unwrap().clone();
+        map_chars[pos.coordinate.row][pos.coordinate.col] =
+            pos.direction.to_string().chars().next().unwrap();
+    }
+
+    print_char_map(&map_chars);
+}
+
+fn count_all_predecessor_paths(
+    pos: State,
+    map: &Map,
+    predecessors: &HashMap<State, Vec<State>>,
+) -> usize {
+    let mut map_chars = init_char_map(map);
+
+    let mut visited_predecessors = HashSet::new();
+
+    let mut queue = vec![pos];
+    while let Some(pos) = queue.pop() {
+        if !visited_predecessors.contains(&pos) {
+            map_chars[pos.coordinate.row][pos.coordinate.col] = 'O';
+            if let Some(new_positions) = predecessors.get(&pos) {
+                for new_pos in new_positions {
+                    if !visited_predecessors.contains(new_pos) {
+                        queue.push(new_pos.clone());
+                    }
+                }
+            }
+            visited_predecessors.insert(pos);
+        }
+    }
+
+    print_char_map(&map_chars);
+
+    let mut visited_coordinates = HashSet::new();
+    for x in visited_predecessors {
+        visited_coordinates.insert(x.coordinate);
+    }
+    visited_coordinates.len()
+}
+
+fn init_char_map(map: &Map) -> Vec<Vec<char>> {
+    map.obstacles
         .iter()
         .map(|x| {
             x.iter()
                 .map(|x| if *x { '#' } else { '.' })
                 .collect::<Vec<char>>()
         })
-        .collect::<Vec<Vec<char>>>();
+        .collect::<Vec<Vec<char>>>()
+}
 
-    while let Some(new_pos) = predecessors.get(&pos) {
-        pos = new_pos.clone();
-        map_chars[pos.coordinate.row][pos.coordinate.col] =
-            new_pos.direction.to_string().chars().next().unwrap();
-    }
-
+fn print_char_map(char_map: &Vec<Vec<char>>) {
     println!(
         "{}",
-        map_chars
+        char_map
             .iter()
             .map(|x| x
                 .iter()
