@@ -1,13 +1,15 @@
 use std::cmp::PartialEq;
 use std::fmt::{Display};
+use std::fs;
 use std::slice::Iter;
 use tae_aoclib2025::{solve_all_inputs};
 
 fn main() {
-    solve_all_inputs("day_17", do_task)
+    // solve_all_inputs("day_17", do_task)
+    do_task(&fs::read_to_string("day_17/input/main.txt").unwrap());
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct MachineState {
     instruction_pointer: usize,
     register_a: usize,
@@ -110,70 +112,50 @@ fn do_task(input: &String) -> (String, String) {
 
     let result2 = search_a_register(program, target_output).or(Some(0)).unwrap();
 
+    println!("{}", result2);
+
     (format!("{}", result1), format!("{}", result2))
 }
 
 fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
-    let first_target = vec![target_output[0]];
-    let mut lowest_10_bit_possibilities = Vec::new();
-    for a_value in 0..(1<<10) {
+    let first_target = vec![target_output[0], target_output[1], target_output[2]];
+    let mut lowest_16_bit_possibilities = Vec::new();
+    for a_value in 0..(1<<16) {
         let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
         if simulate_against_partial_target(&program, &first_target, state) {
-            lowest_10_bit_possibilities.push(a_value);
+            lowest_16_bit_possibilities.push(a_value);
         }
     }
-    println!("Possibilities for the lowest 10 bits to hit the first target (count: {})",lowest_10_bit_possibilities.len());
-    if lowest_10_bit_possibilities.len() < 10 {
-        println!("{:?}", lowest_10_bit_possibilities);
-    }
-    else {
-        println!("omitted");
-    }
-
-    let second_target = vec![target_output[0], target_output[1]];
-    let mut lowest_13_bit_possibilities = Vec::new();
-    for a_value_0_10 in lowest_10_bit_possibilities {
-        for a_value_10_13 in 0..(1<<3) {
-            let a_value = a_value_0_10 + a_value_10_13 << 10;
-            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-            if simulate_against_partial_target(&program, &second_target, state) {
-                lowest_13_bit_possibilities.push(a_value);
-            }
-        }
-    }
-    println!("Possibilities for the lowest 13 bits to hit the first target (count: {})",lowest_13_bit_possibilities.len());
-    if lowest_13_bit_possibilities.len() < 13 {
-        println!("{:?}", lowest_13_bit_possibilities);
-    }
-    else {
-        println!("omitted");
-    }
-
-    let third_target = vec![target_output[0], target_output[1], target_output[2]];
-    let mut lowest_16_bit_possibilities = Vec::new();
-    for a_value_0_13 in lowest_13_bit_possibilities {
-        for a_value_13_16 in 0..(1<<3) {
-            let a_value = a_value_0_13 + a_value_13_16 << 13;
-            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-            if simulate_against_partial_target(&program, &third_target, state) {
-                lowest_16_bit_possibilities.push(a_value);
-            }
-        }
-    }
-    println!("Possibilities for the lowest 16 bits to hit the first target (count: {})",lowest_16_bit_possibilities.len());
+    println!("Possibilities for the lowest 16 bits to hit the first target (count: {})", lowest_16_bit_possibilities.len());
     if lowest_16_bit_possibilities.len() < 10 {
         println!("{:?}", lowest_16_bit_possibilities);
     }
     else {
-        println!("{}, {}, {}, ...", lowest_16_bit_possibilities[0], lowest_16_bit_possibilities[1], lowest_16_bit_possibilities[2]);
+        println!("omitted");
     }
-    println!("Test the run for 8192:");
-    let tmp_state = MachineState{register_a: 8192, register_b: 0, register_c: 0, instruction_pointer: 0};
-    run(&program, tmp_state, true);
 
-    for a_value_upper in 0..10000000000 {
-        for a_value_0_16 in &lowest_16_bit_possibilities {
-            let a_value = a_value_0_16 + (a_value_upper << 16);
+    let second_target = vec![target_output[0], target_output[1], target_output[2], target_output[3], target_output[4], target_output[5], target_output[6], target_output[7]];
+    let mut lowest_32_bit_possibilities = Vec::new();
+    for a_value_16_32 in 0..(1<<16) {
+        for a_value_0_16 in lowest_16_bit_possibilities.iter() {
+            let a_value = (a_value_16_32 << 16) + *a_value_0_16;
+            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+            if simulate_against_partial_target(&program, &second_target, state) {
+                lowest_32_bit_possibilities.push(a_value);
+            }
+        }
+    }
+    println!("Possibilities for the lowest 32 bits to hit the first target (count: {})", lowest_32_bit_possibilities.len());
+    if lowest_32_bit_possibilities.len() < 10 {
+        println!("{:?}", lowest_32_bit_possibilities);
+    }
+    else {
+        println!("omitted");
+    }
+
+    for a_value_upper in 0..10000 {
+        for a_value_0_32 in &lowest_32_bit_possibilities {
+            let a_value = a_value_0_32 + (a_value_upper << 32);
             let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
             if simulate_against_target(&program, &target_output, state) {
                 return Some(a_value);
@@ -187,8 +169,9 @@ fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize
     let program_size = program.len();
     let mut target_iter = target_output.iter();
     while state.instruction_pointer < program_size {
-        // println!("{state:?}");
         let instruction = &program[state.instruction_pointer];
+        // println!("{state}");
+        // println!("{instruction}");
         state.instruction_pointer += 1;
         if test(&mut state, instruction, &mut target_iter) == false {
             return false
@@ -208,11 +191,8 @@ fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &V
         if test(&mut state, instruction, &mut target_iter) == false {
             return false
         }
-        if target_iter.next() == None {
-            return true;
-        }
     }
-    false
+    true
 }
 
 fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -> Vec<usize> {
@@ -297,12 +277,19 @@ fn test(state: &mut MachineState, instruction: &Instruction, target: &mut Iter<u
         Opcode::OUT => {
             let out = operand_value % 8;
             return if let Some(target) = target.next() {
-                // println!("term, because output: {out} != target: {target}");
-                *target == out
+                if *target == out {
+                    // println!("MATCH {target} {out}");
+                    true
+                }
+                else {
+                    // println!("term, because output: {out} != target: {target}");
+                    false
+                }
+
             }
             else {
-                // println!("term, wanted to output {out}, but reached end of target");
-                false
+                // println!("successfully reached end");
+                true
             }
         },
         Opcode::BDV => {
