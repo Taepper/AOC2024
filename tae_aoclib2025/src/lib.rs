@@ -15,7 +15,7 @@ pub fn solve_all_inputs(day: &str, do_task: fn(&String) -> (String, String)) {
         let start = Instant::now();
         let result = do_task(&file_contents);
         let duration = start.elapsed();
-        let formatted_result = format!("( {} , {} )", result.0, result.1);
+        let formatted_result = format!("( {} ) ( {} )", result.0, result.1);
         let formatted_duration = format_duration(duration);
         println!(
             "{:25} {:>25} in {}",
