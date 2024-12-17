@@ -1,6 +1,5 @@
 use std::cmp::PartialEq;
 use std::fmt::{Display};
-use std::slice::Iter;
 use tae_aoclib2025::{solve_all_inputs};
 
 fn main() {
@@ -108,14 +107,12 @@ fn do_task(input: &String) -> (String, String) {
 
     let target_output = program_binary;
 
-    let result2 = search_a_register(program, target_output).or(Some(0)).unwrap();
-
-    println!("{}", result2);
+    let result2 = search_a_register(&program, target_output).unwrap();
 
     (format!("{}", result1), format!("{}", result2))
 }
 
-fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
+fn search_a_register(program: &Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
     let mut partial_target = vec![target_output[0]];
     let mut filtered_values = Vec::new();
     let mut lowest_n_bits = 10;
@@ -125,7 +122,7 @@ fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Op
             filtered_values.push(a_value);
         }
     }
-    while partial_target.len() + 1 < target_output.len() {
+    while partial_target.len() < target_output.len() {
         partial_target.push(target_output[partial_target.len()]);
         let mut next_filtered_values = Vec::new();
         for a_value_0_n in filtered_values {
@@ -144,34 +141,10 @@ fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Op
             println!("{:?}", filtered_values);
         }
         else {
-            println!("omitted");
+            println!("{}, {}, {}, ...", filtered_values[0], filtered_values[1], filtered_values[2]);
         }
     }
-    for a_value_0_n in filtered_values {
-        for a_value_upper in 0..10000 {
-            let a_value = a_value_0_n + (a_value_upper << lowest_n_bits);
-            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-            if simulate_against_target(&program, &target_output, state) {
-                return Some(a_value);
-            }
-        }
-    }
-    None
-}
-
-fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
-    let program_size = program.len();
-    let mut target_iter = target_output.iter();
-    while state.instruction_pointer < program_size {
-        let instruction = &program[state.instruction_pointer];
-        // println!("{state}");
-        // println!("{instruction}");
-        state.instruction_pointer += 1;
-        if test(&mut state, instruction, &mut target_iter) == false {
-            return false
-        }
-    }
-    target_iter.next() == None
+    filtered_values.iter().filter(|candidate| run_with_a_value(program, **candidate, false) == target_output).min().copied()
 }
 
 fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
@@ -182,11 +155,21 @@ fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &V
         // println!("{state}");
         // println!("{instruction}");
         state.instruction_pointer += 1;
-        if test(&mut state, instruction, &mut target_iter) == false {
-            return false
+        if let Some(out) = execute(&mut state, instruction) {
+            if let Some(target) = target_iter.next() {
+                if out != *target {
+                    return false;
+                }
+            }
         }
     }
-    true
+    target_iter.next() == None
+}
+
+fn run_with_a_value(program: &Vec<Instruction>, a_value: usize, debug_print: bool) -> Vec<usize> {
+    let mut state = MachineState::default();
+    state.register_a = a_value;
+    run(program, state, debug_print)
 }
 
 fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -> Vec<usize> {
@@ -246,54 +229,6 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
         }
     }
     None
-}
-
-fn test(state: &mut MachineState, instruction: &Instruction, target: &mut Iter<usize>) -> bool {
-    let operand_value = get_value(state, &instruction.operand);
-    match instruction.opcode {
-        Opcode::ADV => {
-            state.register_a = state.register_a >> operand_value;
-        }
-        Opcode::BXL => {
-            state.register_b = state.register_b ^ operand_value;
-        }
-        Opcode::BST => {
-            state.register_b = operand_value % 8;
-        }
-        Opcode::JNZ => {
-            if state.register_a != 0 {
-                state.instruction_pointer = operand_value;
-            }
-        }
-        Opcode::BXC => {
-            state.register_b = state.register_b ^ state.register_c;
-        }
-        Opcode::OUT => {
-            let out = operand_value % 8;
-            return if let Some(target) = target.next() {
-                if *target == out {
-                    // println!("MATCH {target} {out}");
-                    true
-                }
-                else {
-                    // println!("term, because output: {out} != target: {target}");
-                    false
-                }
-
-            }
-            else {
-                // println!("successfully reached end");
-                true
-            }
-        },
-        Opcode::BDV => {
-            state.register_b = state.register_a >> operand_value;
-        }
-        Opcode::CDV => {
-            state.register_c = state.register_a >> operand_value;
-        }
-    }
-    true
 }
 
 fn get_value(state: &MachineState, operand: &Operand) -> usize {
