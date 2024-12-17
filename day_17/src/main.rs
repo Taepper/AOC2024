@@ -23,14 +23,14 @@ struct Instruction {
 impl Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.opcode {
-            Opcode::ADV => write!(f, "A = A / (1 << {})", self.operand),
+            Opcode::ADV => write!(f, "A = A >> {}", self.operand),
             Opcode::BXL => write!(f, "B = B ^ {}", self.operand),
             Opcode::BST => write!(f, "B = {} % 8", self.operand),
             Opcode::JNZ => write!(f, "if A != 0 {{ goto {}; }}", self.operand),
             Opcode::BXC => write!(f, "B = B ^ C"),
             Opcode::OUT => write!(f, "print({} % 8)", self.operand),
-            Opcode::BDV => write!(f, "B = A / (1 << {})", self.operand),
-            Opcode::CDV => write!(f, "C = A / (1 << {})", self.operand),
+            Opcode::BDV => write!(f, "B = A >> {}", self.operand),
+            Opcode::CDV => write!(f, "C = A >> {}", self.operand),
         }
     }
 }
@@ -108,10 +108,8 @@ fn do_task(input: &String) -> (String, String) {
 }
 
 fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> usize {
-    let program_size = program.len();
-
     // to 300000000
-    for a_value in 8000000000..40000000000 {
+    for a_value in 0..400000000 {
         let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
         if simulate_against_target(&program, &target_output, state) {
             return a_value;
@@ -126,6 +124,7 @@ fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize
     let mut next_target = target_iter.next().unwrap();
     while state.instruction_pointer < program_size {
         let instruction = &program[state.instruction_pointer];
+        state.instruction_pointer += 1;
         if let Some(output) = execute(&mut state, instruction) {
             if output != *next_target {
                 return false;
@@ -146,6 +145,7 @@ fn run(program: Vec<Instruction>, mut state: MachineState) -> Vec<usize> {
     let mut output = Vec::new();
     while state.instruction_pointer < program_size {
         let instruction = &program[state.instruction_pointer];
+        state.instruction_pointer += 1;
         if let Some(out) = execute(&mut state, instruction) {
             output.push(out);
         }
@@ -166,7 +166,7 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
     let operand_value = get_value(state, &instruction.operand);
     match instruction.opcode {
         Opcode::ADV => {
-            state.register_a = state.register_a / (1 << operand_value);
+            state.register_a = state.register_a >> operand_value;
         }
         Opcode::BXL => {
             state.register_b = state.register_b ^ operand_value;
@@ -184,21 +184,19 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
             state.register_b = state.register_b ^ state.register_c;
         }
         Opcode::OUT => {
-            state.instruction_pointer += 1;
             return Some(operand_value % 8)
         },
         Opcode::BDV => {
-            state.register_b = state.register_a / (1 << operand_value);
+            state.register_b = state.register_a >> operand_value;
         }
         Opcode::CDV => {
-            state.register_c = state.register_a / (1 << operand_value);
+            state.register_c = state.register_a >> operand_value;
         }
     }
-    state.instruction_pointer += 1;
     None
 }
 
-fn get_value(state: &mut MachineState, operand: &Operand) -> usize {
+fn get_value(state: &MachineState, operand: &Operand) -> usize {
     match operand {
         Operand::Literal0 => 0,
         Operand::Literal1 => 1,
