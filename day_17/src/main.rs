@@ -1,5 +1,6 @@
 use std::cmp::PartialEq;
-use tae_aoclib2025::solve_all_inputs;
+use std::fmt::{Display};
+use tae_aoclib2025::{solve_all_inputs};
 
 fn main() {
     solve_all_inputs("day_17", do_task)
@@ -11,13 +12,46 @@ struct MachineState {
     register_a: usize,
     register_b: usize,
     register_c: usize,
-    output: Vec<usize>,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 struct Instruction {
     opcode: Opcode,
     operand: Operand,
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.opcode {
+            Opcode::ADV => write!(f, "A = A / (1 << {})", self.operand),
+            Opcode::BXL => write!(f, "B = B ^ {}", self.operand),
+            Opcode::BST => write!(f, "B = {} % 8", self.operand),
+            Opcode::JNZ => write!(f, "if A != 0 {{ goto {}; }}", self.operand),
+            Opcode::BXC => write!(f, "B = B ^ C"),
+            Opcode::OUT => write!(f, "print({} % 8)", self.operand),
+            Opcode::BDV => write!(f, "B = A / (1 << {})", self.operand),
+            Opcode::CDV => write!(f, "C = A / (1 << {})", self.operand),
+        }
+    }
+}
+
+impl Display for Operand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operand::Literal0 => {write!(f, "0")}
+            Operand::Literal1 => {write!(f, "1")}
+            Operand::Literal2 => {write!(f, "2")}
+            Operand::Literal3 => {write!(f, "3")}
+            Operand::Literal4 => {write!(f, "4")}
+            Operand::Literal5 => {write!(f, "5")}
+            Operand::Literal6 => {write!(f, "6")}
+            Operand::Literal7 => {write!(f, "7")}
+            Operand::RegisterA => {write!(f, "A")}
+            Operand::RegisterB => {write!(f, "B")}
+            Operand::RegisterC => {write!(f, "C")}
+            Operand::Reserved => {write!(f, "XXX")}
+        }
+    }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -35,23 +69,19 @@ enum Opcode {
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 enum Operand {
     //Literal
-    L_Literal0,
-    L_Literal1,
-    L_Literal2,
-    L_Literal3,
-    L_Literal4,
-    L_Literal5,
-    L_Literal6,
-    L_Literal7,
+    Literal0,
+    Literal1,
+    Literal2,
+    Literal3,
+    Literal4,
+    Literal5,
+    Literal6,
+    Literal7,
     // Combo
-    C_Literal0,
-    C_Literal1,
-    C_Literal2,
-    C_Literal3,
-    C_RegisterA,
-    C_RegisterB,
-    C_RegisterC,
-    C_Reserved,
+    RegisterA,
+    RegisterB,
+    RegisterC,
+    Reserved,
 }
 
 fn do_task(input: &String) -> (String, String) {
@@ -66,40 +96,63 @@ fn do_task(input: &String) -> (String, String) {
         .collect::<Vec<String>>()
         .join(",");
 
-    let mut result2 = 0;
+    if debug_print {
+        println!("{}", program.iter().map(|x| format!("{x}")).collect::<Vec<String>>().join("\n"));
+    }
 
-    let program_size = program.len();
-    let target_output_size = program_binary.len();
     let target_output = program_binary;
 
-    for a_value in 100000000..200000000 {
-        let mut cur_state = state.clone();
-        cur_state.register_a = a_value;
-        while cur_state.instruction_pointer < program_size {
-            let instruction = &program[cur_state.instruction_pointer];
-            execute(&mut cur_state, instruction);
-            if cur_state.output.len() == target_output_size {
-                break;
-            }
-        }
-        if cur_state.output == target_output {
-            println!("Reached goal for input {a_value}..");
-            result2 = a_value;
-            break;
-        }
-    }
+    let result2 = search_a_register(program, target_output);
 
     (format!("{}", result1), format!("{}", result2))
 }
 
-fn run(program: Vec<Instruction>, mut state: MachineState) -> Vec<usize> {
+fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> usize {
     let program_size = program.len();
+
+    // to 300000000
+    for a_value in 8000000000..40000000000 {
+        let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+        if simulate_against_target(&program, &target_output, state) {
+            return a_value;
+        }
+    }
+    0
+}
+
+fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
+    let program_size = program.len();
+    let mut target_iter = target_output.iter();
+    let mut next_target = target_iter.next().unwrap();
     while state.instruction_pointer < program_size {
         let instruction = &program[state.instruction_pointer];
-        execute(&mut state, instruction);
+        if let Some(output) = execute(&mut state, instruction) {
+            if output != *next_target {
+                return false;
+            }
+            if let Some(target) = target_iter.next() {
+                next_target = target;
+            }
+            else {
+                return true;
+            }
+        }
     }
-    state.output
+    false
 }
+
+fn run(program: Vec<Instruction>, mut state: MachineState) -> Vec<usize> {
+    let program_size = program.len();
+    let mut output = Vec::new();
+    while state.instruction_pointer < program_size {
+        let instruction = &program[state.instruction_pointer];
+        if let Some(out) = execute(&mut state, instruction) {
+            output.push(out);
+        }
+    }
+    output
+}
+
 // ADV, // A = A / (1 << Combo)
 // BXL, // B = B ^ Literal
 // BST, // B = Combo % 8
@@ -109,7 +162,7 @@ fn run(program: Vec<Instruction>, mut state: MachineState) -> Vec<usize> {
 // BDV, // B = A / (1 << Combo)
 // CDV, // C = A / (1 << Combo)
 
-fn execute(state: &mut MachineState, instruction: &Instruction) {
+fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize> {
     let operand_value = get_value(state, &instruction.operand);
     match instruction.opcode {
         Opcode::ADV => {
@@ -124,13 +177,16 @@ fn execute(state: &mut MachineState, instruction: &Instruction) {
         Opcode::JNZ => {
             if state.register_a != 0 {
                 state.instruction_pointer = operand_value;
-                return;
+                return None;
             }
         }
         Opcode::BXC => {
             state.register_b = state.register_b ^ state.register_c;
         }
-        Opcode::OUT => state.output.push(operand_value % 8),
+        Opcode::OUT => {
+            state.instruction_pointer += 1;
+            return Some(operand_value % 8)
+        },
         Opcode::BDV => {
             state.register_b = state.register_a / (1 << operand_value);
         }
@@ -139,26 +195,23 @@ fn execute(state: &mut MachineState, instruction: &Instruction) {
         }
     }
     state.instruction_pointer += 1;
+    None
 }
 
 fn get_value(state: &mut MachineState, operand: &Operand) -> usize {
     match operand {
-        Operand::L_Literal0 => 0,
-        Operand::L_Literal1 => 1,
-        Operand::L_Literal2 => 2,
-        Operand::L_Literal3 => 3,
-        Operand::L_Literal4 => 4,
-        Operand::L_Literal5 => 5,
-        Operand::L_Literal6 => 6,
-        Operand::L_Literal7 => 7,
-        Operand::C_Literal0 => 0,
-        Operand::C_Literal1 => 1,
-        Operand::C_Literal2 => 2,
-        Operand::C_Literal3 => 3,
-        Operand::C_RegisterA => state.register_a,
-        Operand::C_RegisterB => state.register_b,
-        Operand::C_RegisterC => state.register_c,
-        Operand::C_Reserved => {
+        Operand::Literal0 => 0,
+        Operand::Literal1 => 1,
+        Operand::Literal2 => 2,
+        Operand::Literal3 => 3,
+        Operand::Literal4 => 4,
+        Operand::Literal5 => 5,
+        Operand::Literal6 => 6,
+        Operand::Literal7 => 7,
+        Operand::RegisterA => state.register_a,
+        Operand::RegisterB => state.register_b,
+        Operand::RegisterC => state.register_c,
+        Operand::Reserved => {
             panic!("Should not appear in programs..")
         }
     }
@@ -221,8 +274,7 @@ fn parse_input(input: &String) -> (Vec<Instruction>, Vec<usize>, MachineState) {
             register_a,
             register_b,
             register_c,
-            instruction_pointer: 0,
-            output: Vec::new(),
+            instruction_pointer: 0
         },
     )
 }
@@ -245,14 +297,14 @@ fn parse_opcode(opcode: usize) -> Opcode {
 
 fn parse_literal(operand: usize) -> Operand {
     match operand {
-        0 => Operand::L_Literal0,
-        1 => Operand::L_Literal1,
-        2 => Operand::L_Literal2,
-        3 => Operand::L_Literal3,
-        4 => Operand::L_Literal4,
-        5 => Operand::L_Literal5,
-        6 => Operand::L_Literal6,
-        7 => Operand::L_Literal7,
+        0 => Operand::Literal0,
+        1 => Operand::Literal1,
+        2 => Operand::Literal2,
+        3 => Operand::Literal3,
+        4 => Operand::Literal4,
+        5 => Operand::Literal5,
+        6 => Operand::Literal6,
+        7 => Operand::Literal7,
         _ => {
             panic!("Unknown opcode: {}", operand);
         }
@@ -261,14 +313,14 @@ fn parse_literal(operand: usize) -> Operand {
 
 fn parse_combo(operand: usize) -> Operand {
     match operand {
-        0 => Operand::C_Literal0,
-        1 => Operand::C_Literal1,
-        2 => Operand::C_Literal2,
-        3 => Operand::C_Literal3,
-        4 => Operand::C_RegisterA,
-        5 => Operand::C_RegisterB,
-        6 => Operand::C_RegisterC,
-        7 => Operand::C_Reserved,
+        0 => Operand::Literal0,
+        1 => Operand::Literal1,
+        2 => Operand::Literal2,
+        3 => Operand::Literal3,
+        4 => Operand::RegisterA,
+        5 => Operand::RegisterB,
+        6 => Operand::RegisterC,
+        7 => Operand::Reserved,
         _ => {
             panic!("Unknown opcode: {}", operand);
         }
