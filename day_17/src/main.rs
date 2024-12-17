@@ -1,5 +1,6 @@
 use std::cmp::PartialEq;
 use std::fmt::{Display};
+use std::slice::Iter;
 use tae_aoclib2025::{solve_all_inputs};
 
 fn main() {
@@ -20,6 +21,11 @@ struct Instruction {
     operand: Operand,
 }
 
+impl Display for MachineState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "A: {:4} B: {:4} C: {:4}", self.register_a, self.register_b, self.register_c)
+    }
+}
 impl Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.opcode {
@@ -90,61 +96,134 @@ fn do_task(input: &String) -> (String, String) {
 
     let (program, program_binary, state) = parse_input(input);
 
-    let result1 = run(program.clone(), state.clone())
+    let result1 = run(&program, state.clone(), false)
         .iter()
         .map(|i| format!("{}", i))
         .collect::<Vec<String>>()
         .join(",");
 
     if debug_print {
-        println!("{}", program.iter().map(|x| format!("{x}")).collect::<Vec<String>>().join("\n"));
+        println!("Full program:\n{}", program.iter().map(|x| format!("{x}")).collect::<Vec<String>>().join("\n"));
     }
 
     let target_output = program_binary;
 
-    let result2 = search_a_register(program, target_output);
+    let result2 = search_a_register(program, target_output).or(Some(0)).unwrap();
 
     (format!("{}", result1), format!("{}", result2))
 }
 
-fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> usize {
-    // to 300000000
-    for a_value in 0..400000000 {
+fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
+    let first_target = vec![target_output[0]];
+    let mut lowest_10_bit_possibilities = Vec::new();
+    for a_value in 0..(1<<10) {
         let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-        if simulate_against_target(&program, &target_output, state) {
-            return a_value;
+        if simulate_against_partial_target(&program, &first_target, state) {
+            lowest_10_bit_possibilities.push(a_value);
         }
     }
-    0
+    println!("Possibilities for the lowest 10 bits to hit the first target (count: {})",lowest_10_bit_possibilities.len());
+    if lowest_10_bit_possibilities.len() < 10 {
+        println!("{:?}", lowest_10_bit_possibilities);
+    }
+    else {
+        println!("omitted");
+    }
+
+    let second_target = vec![target_output[0], target_output[1]];
+    let mut lowest_13_bit_possibilities = Vec::new();
+    for a_value_0_10 in lowest_10_bit_possibilities {
+        for a_value_10_13 in 0..(1<<3) {
+            let a_value = a_value_0_10 + a_value_10_13 << 10;
+            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+            if simulate_against_partial_target(&program, &second_target, state) {
+                lowest_13_bit_possibilities.push(a_value);
+            }
+        }
+    }
+    println!("Possibilities for the lowest 13 bits to hit the first target (count: {})",lowest_13_bit_possibilities.len());
+    if lowest_13_bit_possibilities.len() < 13 {
+        println!("{:?}", lowest_13_bit_possibilities);
+    }
+    else {
+        println!("omitted");
+    }
+
+    let third_target = vec![target_output[0], target_output[1], target_output[2]];
+    let mut lowest_16_bit_possibilities = Vec::new();
+    for a_value_0_13 in lowest_13_bit_possibilities {
+        for a_value_13_16 in 0..(1<<3) {
+            let a_value = a_value_0_13 + a_value_13_16 << 13;
+            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+            if simulate_against_partial_target(&program, &third_target, state) {
+                lowest_16_bit_possibilities.push(a_value);
+            }
+        }
+    }
+    println!("Possibilities for the lowest 16 bits to hit the first target (count: {})",lowest_16_bit_possibilities.len());
+    if lowest_16_bit_possibilities.len() < 10 {
+        println!("{:?}", lowest_16_bit_possibilities);
+    }
+    else {
+        println!("{}, {}, {}, ...", lowest_16_bit_possibilities[0], lowest_16_bit_possibilities[1], lowest_16_bit_possibilities[2]);
+    }
+    println!("Test the run for 8192:");
+    let tmp_state = MachineState{register_a: 8192, register_b: 0, register_c: 0, instruction_pointer: 0};
+    run(&program, tmp_state, true);
+
+    for a_value_upper in 0..10000000000 {
+        for a_value_0_16 in &lowest_16_bit_possibilities {
+            let a_value = a_value_0_16 + (a_value_upper << 16);
+            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+            if simulate_against_target(&program, &target_output, state) {
+                return Some(a_value);
+            }
+        }
+    }
+    None
 }
 
 fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
     let program_size = program.len();
     let mut target_iter = target_output.iter();
-    let mut next_target = target_iter.next().unwrap();
     while state.instruction_pointer < program_size {
+        // println!("{state:?}");
         let instruction = &program[state.instruction_pointer];
         state.instruction_pointer += 1;
-        if let Some(output) = execute(&mut state, instruction) {
-            if output != *next_target {
-                return false;
-            }
-            if let Some(target) = target_iter.next() {
-                next_target = target;
-            }
-            else {
-                return true;
-            }
+        if test(&mut state, instruction, &mut target_iter) == false {
+            return false
+        }
+    }
+    target_iter.next() == None
+}
+
+fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
+    let program_size = program.len();
+    let mut target_iter = target_output.iter();
+    while state.instruction_pointer < program_size {
+        let instruction = &program[state.instruction_pointer];
+        // println!("{state}");
+        // println!("{instruction}");
+        state.instruction_pointer += 1;
+        if test(&mut state, instruction, &mut target_iter) == false {
+            return false
+        }
+        if target_iter.next() == None {
+            return true;
         }
     }
     false
 }
 
-fn run(program: Vec<Instruction>, mut state: MachineState) -> Vec<usize> {
+fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -> Vec<usize> {
     let program_size = program.len();
     let mut output = Vec::new();
     while state.instruction_pointer < program_size {
         let instruction = &program[state.instruction_pointer];
+        if debug_print {
+            println!("{state}");
+            println!("{instruction}");
+        }
         state.instruction_pointer += 1;
         if let Some(out) = execute(&mut state, instruction) {
             output.push(out);
@@ -177,7 +256,6 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
         Opcode::JNZ => {
             if state.register_a != 0 {
                 state.instruction_pointer = operand_value;
-                return None;
             }
         }
         Opcode::BXC => {
@@ -194,6 +272,47 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
         }
     }
     None
+}
+
+fn test(state: &mut MachineState, instruction: &Instruction, target: &mut Iter<usize>) -> bool {
+    let operand_value = get_value(state, &instruction.operand);
+    match instruction.opcode {
+        Opcode::ADV => {
+            state.register_a = state.register_a >> operand_value;
+        }
+        Opcode::BXL => {
+            state.register_b = state.register_b ^ operand_value;
+        }
+        Opcode::BST => {
+            state.register_b = operand_value % 8;
+        }
+        Opcode::JNZ => {
+            if state.register_a != 0 {
+                state.instruction_pointer = operand_value;
+            }
+        }
+        Opcode::BXC => {
+            state.register_b = state.register_b ^ state.register_c;
+        }
+        Opcode::OUT => {
+            let out = operand_value % 8;
+            return if let Some(target) = target.next() {
+                // println!("term, because output: {out} != target: {target}");
+                *target == out
+            }
+            else {
+                // println!("term, wanted to output {out}, but reached end of target");
+                false
+            }
+        },
+        Opcode::BDV => {
+            state.register_b = state.register_a >> operand_value;
+        }
+        Opcode::CDV => {
+            state.register_c = state.register_a >> operand_value;
+        }
+    }
+    true
 }
 
 fn get_value(state: &MachineState, operand: &Operand) -> usize {
