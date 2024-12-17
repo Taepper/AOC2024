@@ -116,58 +116,47 @@ fn do_task(input: &String) -> (String, String) {
 }
 
 fn search_a_register(program: Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
-    let first_target = vec![target_output[0], target_output[1], target_output[2]];
-    let mut lowest_16_bit_possibilities = Vec::new();
-    for a_value in 0..(1<<16) {
+    let mut partial_target = vec![target_output[0]];
+    let mut filtered_values = Vec::new();
+    let mut lowest_n_bits = 10;
+    for a_value in 0..(1<<lowest_n_bits) {
         let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-        if simulate_against_partial_target(&program, &first_target, state) {
-            lowest_16_bit_possibilities.push(a_value);
+        if simulate_against_partial_target(&program, &partial_target, state) {
+            filtered_values.push(a_value);
         }
     }
-
-    if target_output.len() > 6 {
-        let second_target = vec![target_output[0], target_output[1], target_output[2], target_output[3], target_output[4], target_output[5], target_output[6], target_output[7]];
-        let mut lowest_32_bit_possibilities = Vec::new();
-        for a_value_16_32 in 0..(1<<16) {
-            for a_value_0_16 in lowest_16_bit_possibilities.iter() {
-                let a_value = (a_value_16_32 << 16) + *a_value_0_16;
+    while partial_target.len() + 1 < target_output.len() {
+        partial_target.push(target_output[partial_target.len()]);
+        let mut next_filtered_values = Vec::new();
+        for a_value_0_n in filtered_values {
+            for a_value_n_n_plus_3 in 0..(1<<3) {
+                let a_value = (a_value_n_n_plus_3 << lowest_n_bits) + a_value_0_n;
                 let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-                if simulate_against_partial_target(&program, &second_target, state) {
-                    lowest_32_bit_possibilities.push(a_value);
+                if simulate_against_partial_target(&program, &partial_target, state) {
+                    next_filtered_values.push(a_value);
                 }
             }
         }
-        println!("Possibilities for the lowest 32 bits to hit the first target (count: {})", lowest_32_bit_possibilities.len());
-        if lowest_32_bit_possibilities.len() < 10 {
-            println!("{:?}", lowest_32_bit_possibilities);
+        lowest_n_bits += 3;
+        filtered_values = next_filtered_values;
+        println!("Possibilities for the lowest {lowest_n_bits} bits to hit the first {} targets (count: {})", partial_target.len(), filtered_values.len());
+        if filtered_values.len() < 10 {
+            println!("{:?}", filtered_values);
         }
         else {
             println!("omitted");
         }
-
+    }
+    for a_value_0_n in filtered_values {
         for a_value_upper in 0..10000 {
-            for a_value_0_32 in &lowest_32_bit_possibilities {
-                let a_value = a_value_0_32 + (a_value_upper << 32);
-                let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-                if simulate_against_target(&program, &target_output, state) {
-                    return Some(a_value);
-                }
+            let a_value = a_value_0_n + (a_value_upper << lowest_n_bits);
+            let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+            if simulate_against_target(&program, &target_output, state) {
+                return Some(a_value);
             }
         }
-        None
     }
-    else {
-        for a_value_upper in 0..10000 {
-            for a_value_0_16 in &lowest_16_bit_possibilities {
-                let a_value = a_value_0_16 + (a_value_upper << 16);
-                let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
-                if simulate_against_target(&program, &target_output, state) {
-                    return Some(a_value);
-                }
-            }
-        }
-        None
-    }
+    None
 }
 
 fn simulate_against_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
