@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Rem, RemAssign};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-pub fn solve_all_inputs(day: &str, do_task: fn(&String) -> (i64, i64)) {
+pub fn solve_all_inputs(day: &str, do_task: fn(&String) -> (String, String)) {
     let input_dir: String = if Path::new("input").exists() {
         "input".to_string()
     } else {
