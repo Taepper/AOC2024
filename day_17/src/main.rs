@@ -1,62 +1,33 @@
 use std::cmp::PartialEq;
-use std::fmt::{Display};
-use tae_aoclib2025::{solve_all_inputs};
+use std::fmt::Display;
+use tae_aoclib2025::solve_all_inputs;
 
 fn main() {
     solve_all_inputs("day_17", do_task)
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct MachineState {
     instruction_pointer: usize,
     register_a: usize,
     register_b: usize,
     register_c: usize,
 }
+impl MachineState {
+    pub fn with_a_value(a_register: usize) -> Self {
+        Self {
+            instruction_pointer: 0,
+            register_a: a_register,
+            register_b: 0,
+            register_c: 0,
+        }
+    }
+}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 struct Instruction {
     opcode: Opcode,
     operand: Operand,
-}
-
-impl Display for MachineState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "A: {:4} B: {:4} C: {:4}", self.register_a, self.register_b, self.register_c)
-    }
-}
-impl Display for Instruction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.opcode {
-            Opcode::ADV => write!(f, "A = A >> {}", self.operand),
-            Opcode::BXL => write!(f, "B = B ^ {}", self.operand),
-            Opcode::BST => write!(f, "B = {} % 8", self.operand),
-            Opcode::JNZ => write!(f, "if A != 0 {{ goto {}; }}", self.operand),
-            Opcode::BXC => write!(f, "B = B ^ C"),
-            Opcode::OUT => write!(f, "print({} % 8)", self.operand),
-            Opcode::BDV => write!(f, "B = A >> {}", self.operand),
-            Opcode::CDV => write!(f, "C = A >> {}", self.operand),
-        }
-    }
-}
-
-impl Display for Operand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Operand::Literal0 => {write!(f, "0")}
-            Operand::Literal1 => {write!(f, "1")}
-            Operand::Literal2 => {write!(f, "2")}
-            Operand::Literal3 => {write!(f, "3")}
-            Operand::Literal4 => {write!(f, "4")}
-            Operand::Literal5 => {write!(f, "5")}
-            Operand::Literal6 => {write!(f, "6")}
-            Operand::Literal7 => {write!(f, "7")}
-            Operand::RegisterA => {write!(f, "A")}
-            Operand::RegisterB => {write!(f, "B")}
-            Operand::RegisterC => {write!(f, "C")}
-            Operand::Reserved => {write!(f, "XXX")}
-        }
-    }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -102,22 +73,31 @@ fn do_task(input: &String) -> (String, String) {
         .join(",");
 
     if debug_print {
-        println!("Full program:\n{}", program.iter().map(|x| format!("{x}")).collect::<Vec<String>>().join("\n"));
+        println!(
+            "Full program:\n{}",
+            program
+                .iter()
+                .map(|x| format!("{x}"))
+                .collect::<Vec<String>>()
+                .join("\n")
+        );
     }
 
-    let target_output = program_binary;
-
-    let result2 = search_a_register(&program, target_output).unwrap();
+    let result2 = search_a_register(&program, program_binary, debug_print).unwrap();
 
     (format!("{}", result1), format!("{}", result2))
 }
 
-fn search_a_register(program: &Vec<Instruction>, target_output: Vec<usize>) -> Option<usize> {
+fn search_a_register(
+    program: &Vec<Instruction>,
+    target_output: Vec<usize>,
+    debug_print: bool,
+) -> Option<usize> {
     let mut partial_target = vec![target_output[0]];
     let mut filtered_values = Vec::new();
     let mut lowest_n_bits = 10;
-    for a_value in 0..(1<<lowest_n_bits) {
-        let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+    for a_value in 0..(1 << lowest_n_bits) {
+        let state = MachineState::with_a_value(a_value);
         if simulate_against_partial_target(&program, &partial_target, state) {
             filtered_values.push(a_value);
         }
@@ -126,9 +106,9 @@ fn search_a_register(program: &Vec<Instruction>, target_output: Vec<usize>) -> O
         partial_target.push(target_output[partial_target.len()]);
         let mut next_filtered_values = Vec::new();
         for a_value_0_n in filtered_values {
-            for a_value_n_n_plus_3 in 0..(1<<3) {
+            for a_value_n_n_plus_3 in 0..(1 << 3) {
                 let a_value = (a_value_n_n_plus_3 << lowest_n_bits) + a_value_0_n;
-                let state = MachineState{register_a: a_value, register_b: 0, register_c: 0, instruction_pointer: 0};
+                let state = MachineState::with_a_value(a_value);
                 if simulate_against_partial_target(&program, &partial_target, state) {
                     next_filtered_values.push(a_value);
                 }
@@ -136,25 +116,40 @@ fn search_a_register(program: &Vec<Instruction>, target_output: Vec<usize>) -> O
         }
         lowest_n_bits += 3;
         filtered_values = next_filtered_values;
-        println!("Possibilities for the lowest {lowest_n_bits} bits to hit the first {} targets (count: {})", partial_target.len(), filtered_values.len());
-        if filtered_values.len() < 10 {
-            println!("{:?}", filtered_values);
-        }
-        else {
-            println!("{}, {}, {}, ...", filtered_values[0], filtered_values[1], filtered_values[2]);
+        if debug_print {
+            println!("Possibilities for the lowest {lowest_n_bits} bits to hit the first {} targets (count: {})", partial_target.len(), filtered_values.len());
+            if filtered_values.len() < 10 {
+                println!("{:?}", filtered_values);
+            } else {
+                println!(
+                    "{}, {}, {}, ...",
+                    filtered_values[0], filtered_values[1], filtered_values[2]
+                );
+            }
         }
     }
-    filtered_values.iter().filter(|candidate| run_with_a_value(program, **candidate, false) == target_output).min().copied()
+    filtered_values
+        .iter()
+        .filter(|candidate_a_value| {
+            run(
+                program,
+                MachineState::with_a_value(**candidate_a_value),
+                false,
+            ) == target_output
+        })
+        .min()
+        .copied()
 }
 
-fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &Vec<usize>, mut state: MachineState) -> bool {
+fn simulate_against_partial_target(
+    program: &Vec<Instruction>,
+    target_output: &Vec<usize>,
+    mut state: MachineState,
+) -> bool {
     let program_size = program.len();
     let mut target_iter = target_output.iter();
     while state.instruction_pointer < program_size {
         let instruction = &program[state.instruction_pointer];
-        // println!("{state}");
-        // println!("{instruction}");
-        state.instruction_pointer += 1;
         if let Some(out) = execute(&mut state, instruction) {
             if let Some(target) = target_iter.next() {
                 if out != *target {
@@ -166,12 +161,6 @@ fn simulate_against_partial_target(program: &Vec<Instruction>, target_output: &V
     target_iter.next() == None
 }
 
-fn run_with_a_value(program: &Vec<Instruction>, a_value: usize, debug_print: bool) -> Vec<usize> {
-    let mut state = MachineState::default();
-    state.register_a = a_value;
-    run(program, state, debug_print)
-}
-
 fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -> Vec<usize> {
     let program_size = program.len();
     let mut output = Vec::new();
@@ -181,7 +170,6 @@ fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -
             println!("{state}");
             println!("{instruction}");
         }
-        state.instruction_pointer += 1;
         if let Some(out) = execute(&mut state, instruction) {
             output.push(out);
         }
@@ -199,6 +187,7 @@ fn run(program: &Vec<Instruction>, mut state: MachineState, debug_print: bool) -
 // CDV, // C = A / (1 << Combo)
 
 fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize> {
+    state.instruction_pointer += 1;
     let operand_value = get_value(state, &instruction.operand);
     match instruction.opcode {
         Opcode::ADV => {
@@ -218,9 +207,7 @@ fn execute(state: &mut MachineState, instruction: &Instruction) -> Option<usize>
         Opcode::BXC => {
             state.register_b = state.register_b ^ state.register_c;
         }
-        Opcode::OUT => {
-            return Some(operand_value % 8)
-        },
+        Opcode::OUT => return Some(operand_value % 8),
         Opcode::BDV => {
             state.register_b = state.register_a >> operand_value;
         }
@@ -307,7 +294,7 @@ fn parse_input(input: &String) -> (Vec<Instruction>, Vec<usize>, MachineState) {
             register_a,
             register_b,
             register_c,
-            instruction_pointer: 0
+            instruction_pointer: 0,
         },
     )
 }
@@ -339,7 +326,7 @@ fn parse_literal(operand: usize) -> Operand {
         6 => Operand::Literal6,
         7 => Operand::Literal7,
         _ => {
-            panic!("Unknown opcode: {}", operand);
+            panic!("Unknown literal operand: {}", operand);
         }
     }
 }
@@ -355,11 +342,54 @@ fn parse_combo(operand: usize) -> Operand {
         6 => Operand::RegisterC,
         7 => Operand::Reserved,
         _ => {
-            panic!("Unknown opcode: {}", operand);
+            panic!("Unknown combo operand: {}", operand);
         }
     }
 }
 
 fn takes_literal(opcode: Opcode) -> bool {
     opcode == Opcode::BXL || opcode == Opcode::JNZ
+}
+
+impl Display for MachineState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A: {:4} B: {:4} C: {:4}",
+            self.register_a, self.register_b, self.register_c
+        )
+    }
+}
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.opcode {
+            Opcode::ADV => write!(f, "A = A >> {}", self.operand),
+            Opcode::BXL => write!(f, "B = B ^ {}", self.operand),
+            Opcode::BST => write!(f, "B = {} % 8", self.operand),
+            Opcode::JNZ => write!(f, "if A != 0 {{ goto {}; }}", self.operand),
+            Opcode::BXC => write!(f, "B = B ^ C"),
+            Opcode::OUT => write!(f, "print({} % 8)", self.operand),
+            Opcode::BDV => write!(f, "B = A >> {}", self.operand),
+            Opcode::CDV => write!(f, "C = A >> {}", self.operand),
+        }
+    }
+}
+
+impl Display for Operand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operand::Literal0 => write!(f, "0"),
+            Operand::Literal1 => write!(f, "1"),
+            Operand::Literal2 => write!(f, "2"),
+            Operand::Literal3 => write!(f, "3"),
+            Operand::Literal4 => write!(f, "4"),
+            Operand::Literal5 => write!(f, "5"),
+            Operand::Literal6 => write!(f, "6"),
+            Operand::Literal7 => write!(f, "7"),
+            Operand::RegisterA => write!(f, "A"),
+            Operand::RegisterB => write!(f, "B"),
+            Operand::RegisterC => write!(f, "C"),
+            Operand::Reserved => write!(f, "XXX"),
+        }
+    }
 }
