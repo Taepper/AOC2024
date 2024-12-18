@@ -4,7 +4,7 @@ fn main() {
     solve_all_inputs("day_14", do_task)
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 1000;
 
@@ -36,7 +36,7 @@ fn do_task(input: &String) -> (i64, i64) {
         print_positions(&positions, cols, rows);
     }
 
-    (result1 as i64, result2 as i64)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn print_positions(positions: &Vec<Coordinate>, cols: usize, rows: usize) {

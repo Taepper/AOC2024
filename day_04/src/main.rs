@@ -10,7 +10,7 @@ fn main() {
 const SEARCH_WORD: &str = "XMAS";
 const SEARCH_WORD2: &str = "MAS";
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
     let dim = input.lines().count();
     let lines: Vec<&str> = input.lines().collect();
@@ -103,7 +103,7 @@ fn do_task(input: &String) -> (i64, i64) {
             }
         }
     }
-    (result1, result2)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn horizontal_ranges(x: usize, y: usize, target_len: usize) -> Zip<RepeatN<usize>, Range<usize>> {

@@ -5,7 +5,7 @@ fn main() {
     solve_all_inputs("day_01", do_task);
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let mut left_numbers = Vec::new();
     let mut right_numbers = Vec::new();
     let mut right_numbers_count: HashMap<i64, i64> = HashMap::new();
@@ -38,5 +38,5 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
-    (result1, result2)
+    (format!("{result1}"), format!("{result2}"))
 }

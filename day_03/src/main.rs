@@ -13,7 +13,7 @@ enum Value {
     Dont,
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let mut result1 = 0;
     let mut result2 = 0;
     let mut cursor = 0;
@@ -42,7 +42,7 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
-    (result1, result2)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn print(text: &str, cursor: usize, start_cursor: usize, extra: &str) {

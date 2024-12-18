@@ -5,7 +5,7 @@ fn main() {
     solve_all_inputs("day_06", do_task)
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
 
     let mut board = parse_input(input);
@@ -51,7 +51,7 @@ fn do_task(input: &String) -> (i64, i64) {
     let result1 = all_visited_squares.len();
     let result2 = potential_new_obstacles.len();
 
-    (result1 as i64, result2 as i64)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn is_looping(board: &Board, mut position: Position, debug_print: bool) -> bool {

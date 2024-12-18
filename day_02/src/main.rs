@@ -4,7 +4,7 @@ fn main() {
     solve_all_inputs("day_02", do_task);
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let mut result1 = 0;
     let mut result2 = 0;
     for line in input.lines() {
@@ -19,7 +19,7 @@ fn do_task(input: &String) -> (i64, i64) {
             result2 += 1;
         }
     }
-    (result1, result2)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn line_is_safe(levels: &Vec<i64>) -> bool {

@@ -4,7 +4,7 @@ fn main() {
     solve_all_inputs("day_07", do_task)
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
     let mut result1 = 0;
     let mut result2: u128 = 0;
@@ -36,7 +36,7 @@ fn do_task(input: &String) -> (i64, i64) {
             result2 += goal as u128;
         }
     }
-    (result1 as i64, result2 as i64)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn any_matches(numbers: &Vec<(u64, u32)>, goal: u64, debug_print: bool) -> bool {

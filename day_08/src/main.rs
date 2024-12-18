@@ -5,7 +5,7 @@ fn main() {
     solve_all_inputs("day_08", do_task)
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print = std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1";
 
     let rows = input.lines().count();
@@ -95,5 +95,5 @@ fn do_task(input: &String) -> (i64, i64) {
 
     let result1 = antinodes_strict.len() as i64;
     let result2 = antinodes.len() as i64;
-    (result1, result2)
+    (format!("{result1}"), format!("{result2}"))
 }

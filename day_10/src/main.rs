@@ -5,7 +5,7 @@ fn main() {
     solve_all_inputs("day_10", do_task)
 }
 
-fn do_task(input: &String) -> (i64, i64) {
+fn do_task(input: &String) -> (String, String) {
     let debug_print =
         std::env::var("DEBUG_PRINT").unwrap_or("0".to_string()) == "1" && input.len() < 500;
 
@@ -96,7 +96,7 @@ fn do_task(input: &String) -> (i64, i64) {
         }
     }
 
-    (result1 as i64, result2 as i64)
+    (format!("{result1}"), format!("{result2}"))
 }
 
 fn parse_input(input: &String) -> Vec<Vec<usize>> {
